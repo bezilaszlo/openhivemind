@@ -26,8 +26,19 @@ wrapper from ADR 0002:
 | Markdown | a maintained React renderer, raw HTML off, safe URLs |
 | Tests | Vitest + Testing Library; no browser e2e in the MVP |
 
-No second UI kit, no global state library, no remote fonts. Product
-components live in `frontend/src/components/`, routes compose them.
+No second UI kit, no global state library, no remote fonts.
+
+The primitive base is **Radix UI**, through the unified `radix-ui` package;
+`cn` is `clsx` + `tailwind-merge`. Copied so far: button, badge, input, label,
+select, alert-dialog and sheet. They are our source: wired to the tokens
+below instead of shadcn's default palette, with the entrance animations
+dropped, and only added when a screen uses them.
+
+Files: `main.tsx` holds the routes and bootstrap only; one screen per file in
+`frontend/src/screens/`; shared product components in
+`frontend/src/components/`, primitives in `frontend/src/components/ui/`;
+formatting, harness metadata, theme and `cn` in `frontend/src/lib/`. Keep
+files under about 400 lines.
 
 ## Visual rules
 
@@ -41,6 +52,24 @@ components live in `frontend/src/components/`, routes compose them.
   14 px / 1.4, metadata 12–13 px. Reading column about 75 characters; code may
   use the full width with internal horizontal scroll. Spacing scale 4–48 px,
   6–8 px corners.
+- Harness identity: each source borrows its own hue, tuned to sit on the warm
+  ground next to the teal accent and to reach 4.5:1 on its own background.
+
+  | Harness | Light | Dark |
+  | --- | --- | --- |
+  | Claude Code | `#9C4A2B` | `#D97757` |
+  | Codex | `#4A6E5D` | `#74AC90` |
+  | opencode | `#6A5AA5` | `#9E85D8` |
+
+  A row or message sets `data-harness`, which resolves the `--harness` token;
+  tints are the same token at 8% over its surface, so one token per harness
+  per theme covers stripe, badge, tint and chip. It shows only in the session
+  row (left stripe plus a badge with glyph and name), the reader header badge,
+  the prompt background tint, the tool-call chips and the child stripes in the
+  agent tree. Replies stay neutral; nothing else takes a
+  harness colour. Each harness also has its own 16 px geometric glyph in
+  `currentColor` — ours, not a vendor logo — so the source never depends on
+  colour alone. An unknown source falls back to the muted token.
 - Two densities: compact rows for browsing, comfortable for reading.
 - Every shared control has hover, focus-visible, active, disabled and pending
   states. Icon-only buttons have names. Nothing essential hides behind hover.
@@ -59,8 +88,9 @@ Assets in `frontend/public/` (`mark.svg`, `logo.svg`, `favicon.svg`) and
   tracking. Product name in prose stays "Open Hivemind".
 - Tokens: background `#FAF8F5` light / `#14161A` dark; accent `#3A8291`.
   The accent is about 4.1:1 on both grounds: fine for the mark, buttons, links
-  and focus rings, not for body text. Small accent-coloured text uses a
-  per-theme tint that reaches 4.5:1 (for example `#2F7487` on light).
+  and focus rings, not for body text. Small accent-coloured text and solid
+  accent fills use a per-theme tint that reaches 4.5:1: `#2F7487` on light,
+  `#5AA5B4` on dark.
 - Voice: eyebrow "Many minds, one memory." and tagline "One memory. Every
   session." are the only slogans; login page shows the lockup and the tagline,
   nothing else decorative.
@@ -68,8 +98,9 @@ Assets in `frontend/public/` (`mark.svg`, `logo.svg`, `favicon.svg`) and
 ## Shell
 
 Left navigation: Sessions, Search, Usage; Tokens and Organisation under
-settings, shown by permission. No dashboard landing page. Narrow screens:
-one column, navigation as a menu, filters in a sheet, never page-level
+settings, shown by permission. Login stands alone, without the shell. No
+dashboard landing page. Narrow screens: one column, navigation and the reader's
+agent panel as sheets, filter bars wrapping into the column, never page-level
 horizontal scroll.
 
 ## Screens
