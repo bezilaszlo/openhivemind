@@ -44,7 +44,7 @@ https://user:token@github.com/Alvicom/Demo/
 GitHub.com/alvicom/demo
 ```
 
-Tests in `packages/shared`: each rule above, plus a local-path remote
+Tests in `shared`: each rule above, plus a local-path remote
 (`/srv/git/x.git` → `/srv/git/x`, allowed; it groups only that machine).
 
 ## Common hook contract

@@ -50,11 +50,9 @@ openhivemind/
 │   │   ├── auth/               # Better Auth bridge, PATs, auth context
 │   │   ├── db/                 # Drizzle schema (incl. auth), retention, migrations/
 │   │   └── search.ts, ingest.ts, …   # services as flat modules
-│   ├── openapi.json            # generated, drift-checked
 │   └── test/                   # integration against real Postgres, load workload
 ├── frontend/
-│   ├── src/routes/, src/components/, src/api/generated/
-│   └── e2e/                    # Playwright smoke
+│   └── src/routes/, src/components/, src/api.ts   # typed fetch over shared schemas
 ├── client/
 │   ├── src/
 │   │   ├── commands/           # one file per CLI command
@@ -71,13 +69,13 @@ Rules:
 
 - Apps depend on `shared`; never on each other. `shared` has no filesystem,
   network, database or process side effects.
-- Contract path: `shared/schemas` → backend routes → `backend/openapi.json` →
-  `frontend/src/api/generated/`. Generated files are drift-checked in CI and
-  never hand-edited.
+- Contract: `shared/schemas` is imported by backend routes, frontend and CLI.
+  OpenAPI is served at runtime from the same schemas, never committed.
 - Tests: unit tests sit beside their module as `*.test.ts`. Package `test/`
   holds integration and acceptance scenarios that need Postgres, a temp HOME
-  or a packed tarball. `frontend/e2e/` is Playwright. Pack and load are CI
-  jobs over those directories, not extra trees.
+  or a packed tarball. Frontend components are tested with Vitest and
+  Testing Library; no browser e2e in the MVP. Pack and load are CI jobs over
+  those directories, not extra trees.
 - Plugin directories are packaging sources; assembly copies the built client
   and the canonical skills into each harness's native layout (opencode command
   files derived from the same skills). Runtime state never lives in the repo.
@@ -89,7 +87,7 @@ committed; auth library decided; normalisation and privacy rules written;
 `docs/search.md` written; domain model reconciled with the generated Better
 Auth schema (done 2026-09-05, see Gate 2).
 
-- pnpm workspace: `backend/`, `frontend/`, `client/`, `packages/shared/`,
+- pnpm workspace: `backend/`, `frontend/`, `client/`, `shared/`,
   `fixtures/`. Root `compose.yml` (DoD is `docker compose up` at the root) with
   a persistent DB volume; `deploy/` holds the Dockerfile and extra overlays.
 - Node LTS pinned in `.nvmrc` and `engines`; `packageManager` pins pnpm. Client
@@ -126,9 +124,9 @@ Auth schema (done 2026-09-05, see Gate 2).
 
 ## Gate 2 — contract slice
 
-Exit: every schema below exists as TypeBox in `packages/shared`, the server
-generates `openapi.json` from them without a database, the web client is
-generated from that file, and the contract tests pass against stub handlers.
+Exit: every schema below exists as TypeBox in `shared/schemas`, the server
+serves OpenAPI derived from them without a database, frontend and CLI compile
+against them, and the contract tests pass against stub handlers.
 
 Shared schemas are the source the server's route definitions import; they are
 never a second, hand-maintained contract.
@@ -296,8 +294,8 @@ spool → authenticated ingest → list and search → viewer, running from the 
   `openhivemind migrate` step in the container entrypoint before the server
   starts; the server refuses to start on a pending or failed migration.
   Readiness endpoint, graceful shutdown.
-- Viewer: login, sessions list, session feed with deep link. Generated client
-  only.
+- Viewer: login, sessions list, session feed with deep link, through the
+  shared-schema fetch wrapper only.
 - Tests: kill the hook mid-write, kill the uploader mid-POST, offline for an
   hour then online, concurrent hook + beam on the same session, SessionEnd
   drain, tenant isolation, tombstone then late retry, roots/exclude honoured
@@ -327,8 +325,9 @@ edits from feature work.
 - **Viewer**: delete own session (with descendants, confirm dialog), search
   with snippets and highlight, subagent tree and agents
   cell, summary card, prompts-only and tool-calls-only toggles,
-  usage page, tokens page, org admin (members, invites, roles). Playwright
-  smoke: login, list, open, search, mint token, invite.
+  usage page, tokens page, org admin (members, invites, roles). Component
+  tests for list, feed, search and admin forms; manual smoke in the two-laptop
+  run.
 
 ## Gate 5 — integration and hardening
 
