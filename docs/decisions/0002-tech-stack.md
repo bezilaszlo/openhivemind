@@ -34,6 +34,7 @@ One language across client, server and web.
 | Auth | Local email/password + invites and OIDC login behind one provider interface; PATs in an application-owned table, hashed, scoped. Library: Better Auth, pinned, per ADR 0003 |
 | Tests / gates | Vitest with real-Postgres integration tests, strict TypeScript, oxlint + oxfmt for lint/format (ESLint-compatible rules, same toolchain family as Vite/Rolldown), one root check command |
 | Deploy | One app container (server + built web) and Postgres, via compose |
+| Observability | `prom-client` via `fastify-metrics` for `/metrics` (Prometheus text), `@fastify/under-pressure` for readiness. No OpenTelemetry in v1 |
 
 Contract: the TypeBox schemas in `shared/schemas`, imported by server routes,
 web and CLI alike. OpenAPI is derived from them at runtime by

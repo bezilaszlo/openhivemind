@@ -38,6 +38,8 @@ in the viewer and via search within one turn of the hook firing.
   cross-session chronology.
 - PR-review lens: tool-call-only views, branch filters, links from PRs to the
   sessions behind them.
+- OpenTelemetry (traces across ingest and search, OTLP export) when a team
+  wants more than the Prometheus `/metrics` endpoint.
 
 ## Later — understanding, not just recall
 
