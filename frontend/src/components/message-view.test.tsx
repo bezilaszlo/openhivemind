@@ -63,3 +63,20 @@ it("tints a prompt with its own harness and leaves replies neutral", () => {
   const reply = container.querySelector("article")!;
   expect(reply.className).not.toContain("bg-harness");
 });
+it("labels a fenced code block with its language and offers a copy action", () => {
+  render(
+    <MessageView
+      source="claude-code"
+      message={{
+        seq: 5,
+        rev: 1,
+        kind: "reply",
+        text: "```sql\nSELECT 1;\n```",
+        ts: "2026-09-05T10:00:00Z",
+      }}
+    />,
+  );
+  expect(screen.getByText("sql")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Copy" })).toBeTruthy();
+  expect(screen.getByText("SELECT 1;")).toBeTruthy();
+});

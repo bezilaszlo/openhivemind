@@ -1,9 +1,36 @@
+import { isValidElement } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@openhivemind/shared";
 import { harness } from "../lib/harness";
 import { harnessProps } from "./harness-badge";
 import { cn } from "../lib/utils";
+import { Button } from "./ui/button";
+function CodeBlock({ children }: { children?: React.ReactNode }) {
+  const code = isValidElement<{ className?: string; children?: unknown }>(children)
+    ? children
+    : null;
+  const language = /language-([\w+-]+)/.exec(code?.props.className ?? "")?.[1];
+  const text = typeof code?.props.children === "string" ? code.props.children : "";
+  return (
+    <figure className="my-4 overflow-hidden rounded-md border border-border bg-sidebar">
+      <figcaption className="flex items-center justify-between gap-2 border-b border-border px-3 py-1 text-xs text-muted">
+        <span className="font-mono">{language ?? "text"}</span>
+        {text && (
+          <Button
+            variant="ghost"
+            size="none"
+            className="h-6 px-2 text-xs text-muted"
+            onClick={() => void navigator.clipboard.writeText(text)}
+          >
+            Copy
+          </Button>
+        )}
+      </figcaption>
+      <pre className="overflow-x-auto p-4 font-mono text-xs leading-relaxed">{children}</pre>
+    </figure>
+  );
+}
 const speaker = {
   prompt: "You",
   reply: "Assistant",
@@ -51,6 +78,7 @@ export function MessageView({ message, source }: { message: Message; source: str
           <Markdown
             remarkPlugins={[remarkGfm]}
             components={{
+              pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
               img: ({ src, alt }) => (
                 <a href={src} rel="noreferrer">
                   Image: {alt || "remote image"}
