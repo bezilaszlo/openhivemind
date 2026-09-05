@@ -64,8 +64,9 @@ when written.
   path, including id-prefix resolution.
 - Purge is owner-only. It deletes the session and its descendants and leaves a
   tombstone so a delayed retry cannot resurrect it.
-- Retention deletes by activity age, not receipt time, so re-beaming old
-  history does not extend it. Backups follow the same expiry.
+- Retention (default 90 days, configurable) deletes by activity age, not
+  receipt time, so re-beaming old history does not extend it. Backups follow
+  the same expiry.
 - No per-person analytics: no counts of sessions or hours per author, no
   activity timelines per person, no export of author metadata. Author is a
   filter on search and list only.

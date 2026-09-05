@@ -30,8 +30,8 @@ work inside a gate is split up or sequenced is not prescribed here.
 
 Exit: workspace and gates run green in CI; harness matrix and fixtures
 committed; auth library decided; normalisation and privacy rules written;
-`docs/search.md` written; the domain model below reconciled with the Drizzle
-schema Better Auth actually generates (our tables alongside, names fixed).
+`docs/search.md` written; domain model reconciled with the generated Better
+Auth schema (done 2026-09-05, see Gate 2).
 
 - pnpm workspace: `backend/`, `frontend/`, `client/`, `packages/shared/`,
   `fixtures/`. Root `compose.yml` (DoD is `docker compose up` at the root) with
@@ -79,18 +79,36 @@ never a second, hand-maintained contract.
 
 ### Domain model
 
-- `org(id, name, created_at)`
-- `user(id, email unique, name, password_hash?, created_at)`; global users.
-- `membership(org_id, user_id, role: admin|member, created_at)`; PK (org,
-  user). First user to register creates an org and its admin membership in one
-  transaction. Later users join only through an invite.
-- `identity(user_id, issuer, subject)`, unique (issuer, subject). OIDC login
-  with an unknown identity creates a user but no membership; an invite grants
-  it. No account linking by unverified email.
-- `invite(id, org_id, email?, role, token_sha256 unique, expires_at,
-  accepted_by?, accepted_at?)`; single use; delivered as a copyable link,
-  optional SMTP sends it.
-- `web_session(id, user_id, expires_at)`; cookie, HttpOnly, CSRF token.
+Auth tables are the ones Better Auth v1.7.2 generates (core + organization
+plugin), in Postgres schema `auth`, names kept so upgrades diff cleanly.
+Reconciled 2026-09-05 against the CLI built from the v1.7.2 source (the npm
+`@better-auth/cli@latest` was 1.4.21 and lacks the 1.7 identity model).
+
+- `auth.user(id, name, email unique, emailVerified, image?)`; global users.
+  Email is required by the library, including for OIDC sign-in.
+- `auth.account(id, issuer, accountId, providerId, userId, password?,
+  tokens…)`; unique (issuer, accountId). Local password lives here
+  (providerId `credential`). `accountLinking.enabled: false`: an unknown
+  (issuer, accountId) whose email matches an existing user fails to sign in
+  rather than linking; a new email creates a user with no membership.
+- `auth.session(id, token unique, userId, expiresAt, ipAddress?, userAgent?,
+  activeOrganizationId?)`; DB-backed cookie session, CSRF by the library.
+- `auth.verification(id, identifier, value, expiresAt)`; password reset.
+- `auth.organization(id, name, slug unique, logo?, metadata?)`.
+- `auth.member(id, organizationId, userId, role text, createdAt)`; role is a
+  plain text column. `creatorRole: "admin"` and a custom access-control set
+  limited to `admin|member`, so `owner` never appears. First-user bootstrap
+  is our transaction (org + admin member) guarded by a unique constraint;
+  `beforeCreateOrganization` rejects any later org.
+- `auth.invitation`: **not used**. The plugin requires an email per invite,
+  stores the plain id as the token and forces email equality on accept, which
+  rules out a copyable open link. Our own table instead:
+  `invite(id, org_id, email?, role, token_sha256 unique, expires_at,
+  created_by, accepted_by?, accepted_at?)`; single use; accept endpoint is
+  ours and creates the `auth.member` row through the library's adapter.
+  Optional SMTP sends the same link.
+Our tables, schema `public`, FK to `auth.organization.id` / `auth.user.id`:
+
 - `api_token(id, org_id, user_id, name, token_sha256 unique, scopes[],
   created_at, last_used_at, revoked_at)`; `ohm_` + 40 hex, hashed at rest,
   scopes `ingest`, `read` (MVP mints both).
