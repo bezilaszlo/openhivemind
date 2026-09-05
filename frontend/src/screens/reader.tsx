@@ -8,6 +8,7 @@ import { number } from "../lib/format";
 import { useChanges } from "../lib/changes";
 import { AgentPanel } from "../components/agent-panel";
 import { SessionActivity } from "../components/activity";
+import { useAgents } from "../components/agents";
 import { useOrg } from "../components/app-shell";
 import { HarnessBadge } from "../components/harness-badge";
 import { MessageView } from "../components/message-view";
@@ -45,11 +46,7 @@ export function Reader({ id }: { id: string }) {
       api(routes.session, { params: { id }, query: { ...state, context: 10, maxChars: 40000 } }),
     retry: false,
   });
-  const children = useQuery({
-    queryKey: ["children", id],
-    queryFn: () =>
-      api(routes.sessions, { query: { parent: id, includeChildren: true, limit: 100 } }),
-  });
+  const children = useAgents(id);
   const remove = useMutation({
     mutationFn: () => api(routes.purge, { params: { id } }),
     onSuccess: () => {
@@ -93,6 +90,11 @@ export function Reader({ id }: { id: string }) {
             <HarnessBadge source={session.source} />
             <span className="font-mono text-xs">{session.branch || "No branch"}</span>
             <SessionActivity session={session} />
+            {session.parent_session_id && (
+              <span className="rounded-md border border-dotted border-muted px-1.5 py-0.5 text-xs">
+                Subagent session, depth {session.spawn_depth || 1}
+              </span>
+            )}
           </span>
         }
       >

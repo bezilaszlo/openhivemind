@@ -127,6 +127,17 @@ ever being marked complete. The list polls the changes feed with its stored
 cursor every 30 seconds while the tab is visible and invalidates only the
 sessions that feed names.
 
+Subagents get a cell of their own, because a session that opened subagents
+which opened their own is usually waste, and a subagent that silently inherits
+a top-tier model drains a quota. The signal is structural, never a warning
+colour: the session's model chip, then one chip per child model with its count
+("opus-5 ×7 ~1"), dotted when every child inherited the session model and
+carrying a "~N" suffix when only some did, then a plain "N deep" marker when
+the rollup's `maxDepth` reaches 2. Hovering or focusing the cell opens the
+tree, grouped by depth, each child linking to its own page. Row tokens are the
+whole tree; the session's own number stays in the title. Filters "With
+subagents", "Nested" and "Inherited model" sit beside "Only mine".
+
 **Reader.** Header: title, project, branch, harness, models, timestamps,
 copy link, delete for the owner. Current summary as a compact card; older
 summaries stay in place in the feed. Prompts get a subtle background, replies
@@ -137,7 +148,10 @@ Prompts-only and tool-calls-only toggles. A deep link loads the window around
 that seq; if a toggle hides it, say so and offer to clear. Loading older or
 newer windows keeps the reading position. The header carries the same
 activity indicator as the row, and the changes poll only enables a "new
-messages" control: nothing loads or scrolls until the reader asks.
+messages" control: nothing loads or scrolls until the reader asks. The agent
+panel repeats the rollup chips and the depth marker beside "Subagents (N)" and
+lists the children grouped by depth with ↳ indentation; a child page says
+"Subagent session, depth N" under its title and links back to the root.
 
 **Transcript rendering.** Captured text is untrusted. Markdown through the
 renderer above; snippets and highlights from escaped text or structured

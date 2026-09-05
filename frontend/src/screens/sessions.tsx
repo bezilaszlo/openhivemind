@@ -10,7 +10,21 @@ import { Checkbox, EmptyState, ErrorState, Loading, PageHeader, page } from "../
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-type Query = { remote?: string; branch?: string; mine?: boolean; cursor?: string };
+type Query = {
+  remote?: string;
+  branch?: string;
+  mine?: boolean;
+  subagents?: boolean;
+  nested?: boolean;
+  inherited?: boolean;
+  cursor?: string;
+};
+const toggles = [
+  { key: "mine", label: "Only mine" },
+  { key: "subagents", label: "With subagents" },
+  { key: "nested", label: "Nested" },
+  { key: "inherited", label: "Inherited model" },
+] as const;
 export function Sessions() {
   const search = useSearch({ strict: false }) as Query;
   const navigate = useNavigate();
@@ -22,14 +36,16 @@ export function Sessions() {
     retry: false,
   });
   useChanges();
-  const filtered = Boolean(search.remote || search.branch || search.mine);
+  const filtered =
+    toggles.some(({ key }) => search[key]) || Boolean(search.remote || search.branch);
   const go = (next: Query) => void navigate({ to: "/", search: { ...next, cursor: undefined } });
   const chips: { label: string; clear: Query }[] = [];
   if (search.remote)
     chips.push({ label: `Project: ${search.remote}`, clear: { ...search, remote: undefined } });
   if (search.branch)
     chips.push({ label: `Branch: ${search.branch}`, clear: { ...search, branch: undefined } });
-  if (search.mine) chips.push({ label: "Only mine", clear: { ...search, mine: undefined } });
+  for (const { key, label } of toggles)
+    if (search[key]) chips.push({ label, clear: { ...search, [key]: undefined } });
   return (
     <main className={page}>
       <PageHeader
@@ -63,13 +79,15 @@ export function Sessions() {
           />
         </div>
         <Button type="submit">Apply filters</Button>
-        <Label className="h-9 gap-2 text-sm text-foreground">
-          <Checkbox
-            checked={Boolean(search.mine)}
-            onChange={(event) => go({ ...search, mine: event.target.checked || undefined })}
-          />
-          Only mine
-        </Label>
+        {toggles.map(({ key, label }) => (
+          <Label key={key} className="h-9 gap-2 text-sm text-foreground">
+            <Checkbox
+              checked={Boolean(search[key])}
+              onChange={(event) => go({ ...search, [key]: event.target.checked || undefined })}
+            />
+            {label}
+          </Label>
+        ))}
       </form>
       {chips.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 pt-4">

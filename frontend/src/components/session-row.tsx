@@ -2,10 +2,16 @@ import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import type { Session } from "@openhivemind/shared";
 import { number, totalTokens } from "../lib/format";
+import { AgentsCell } from "./agents";
 import { SessionActivity } from "./activity";
 import { HarnessBadge, HarnessStripe, harnessProps } from "./harness-badge";
 export function SessionRow({ session }: { session: Session }) {
   const tokens = totalTokens(session.tokens);
+  // The row counts the whole tree; the tooltip keeps the parent's own number.
+  const rolled =
+    tokens === null
+      ? null
+      : tokens + (session.agents ? session.agents.inputTokens + session.agents.outputTokens : 0);
   return (
     <article
       {...harnessProps(session.source)}
@@ -16,7 +22,7 @@ export function SessionRow({ session }: { session: Session }) {
         <Link
           to="/sessions/$id"
           params={{ id: session.id }}
-          className="text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground after:absolute after:inset-0 hover:text-accent-ink"
+          className="text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground hover:text-accent-ink"
         >
           {session.title || "Untitled session"}
         </Link>
@@ -29,12 +35,10 @@ export function SessionRow({ session }: { session: Session }) {
         <span className="font-mono">{session.remote}</span>
         <span>{session.branch || "No branch"}</span>
         <SessionActivity session={session} />
-        <span>
-          {session.childCount
-            ? `${session.childCount} agent${session.childCount === 1 ? "" : "s"}`
-            : "Main session"}
+        <AgentsCell session={session} />
+        <span title={tokens === null ? undefined : `Parent session only: ${number(tokens)}`}>
+          {tokens === null ? "Usage unknown" : `${number(rolled)} tokens`}
         </span>
-        <span>{tokens === null ? "Usage unknown" : `${number(tokens)} tokens`}</span>
       </div>
       <ChevronRight aria-hidden="true" className="absolute right-1 top-5 size-4 text-muted" />
     </article>
