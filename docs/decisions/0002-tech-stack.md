@@ -38,9 +38,7 @@ One language across client, server and web.
 Contract: the TypeBox schemas in `shared/schemas`, imported by server routes,
 web and CLI alike. OpenAPI is derived from them at runtime by
 `@fastify/swagger` and served at `/docs` for third-party clients; never
-committed. Fallback if the shared import ever fights the browser bundle: the
-FastAPI-template pattern, `openapi.json` gitignored and a committed
-`@hey-api/openapi-ts` client regenerated in CI.
+committed.
 
 ## Why
 
