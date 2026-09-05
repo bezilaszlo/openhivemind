@@ -10,7 +10,9 @@ const svg = {
   strokeLinecap: "round" as const,
   "aria-hidden": true,
 };
-// Geometric marks of our own: a filled wedge, a terminal caret, a nested rhombus.
+// Anthropic and OpenAI both require written permission for logo use, so Claude Code
+// and Codex get geometric marks of our own: a filled wedge and a terminal caret.
+// opencode's licence allows its own mark, so that one is the real thing.
 // Distinct silhouettes so the harness reads without relying on colour.
 const ClaudeCodeGlyph: Glyph = ({ className }) => (
   <svg {...svg} className={className} fill="currentColor">
@@ -23,10 +25,21 @@ const CodexGlyph: Glyph = ({ className }) => (
     <path d="M8.8 11.6h3.8" />
   </svg>
 );
+// opencode's own mark, taken verbatim from the project's favicon; the viewBox is
+// cropped to the mark so it sits at the same optical size as the others.
 const OpencodeGlyph: Glyph = ({ className }) => (
-  <svg {...svg} className={className}>
-    <path d="M8 2.6 13.4 8 8 13.4 2.6 8Z" />
-    <path d="M8 6.2 9.8 8 8 9.8 6.2 8Z" />
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="128 96 256 320"
+    fill="currentColor"
+    aria-hidden="true"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M384 416H128V96H384V416ZM320 160H192V352H320V160Z"
+    />
   </svg>
 );
 export const harnesses: Record<Harness, { label: string; Glyph: Glyph }> = {

@@ -69,7 +69,11 @@ files under about 400 lines.
   agent tree. Replies stay neutral; nothing else takes a
   harness colour. Each harness also has its own 16 px geometric glyph in
   `currentColor` — ours, not a vendor logo — so the source never depends on
-  colour alone. An unknown source falls back to the muted token.
+  colour alone. A harness glyph is the vendor's own mark only where its licence
+  allows it — today opencode's; Anthropic and OpenAI both require written
+  permission, so Claude Code and Codex keep geometric stand-ins. Sources,
+  licences and the guideline pages are recorded in `assets/README.md`. An
+  unknown source falls back to the muted token.
 - Two densities: compact rows for browsing, comfortable for reading.
 - Every shared control has hover, focus-visible, active, disabled and pending
   states. Icon-only buttons have names. Nothing essential hides behind hover.
