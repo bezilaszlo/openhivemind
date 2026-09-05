@@ -29,7 +29,7 @@ One language across client, server and web.
 | Workspace | pnpm workspaces (isolated `node_modules`, no phantom imports); Node LTS as the only runtime |
 | Client (`client/`) | TypeScript CLI published to npm, run as `npx openhivemind`; ships the Claude Code / Codex / opencode plugin manifests and agent skills |
 | Server (`backend/`) | Node LTS, Fastify, TypeBox schemas (JSON Schema → OpenAPI and static types), Drizzle + node-postgres, Drizzle Kit migrations as reviewed SQL run once at deploy |
-| Web (`frontend/`) | React, Vite, TanStack Router and Query, types imported from `shared/schemas` with a small typed fetch wrapper (no codegen), served as static files by the server |
+| Web (`frontend/`) | React, Vite, TanStack Router and Query, Tailwind CSS, shadcn/ui (copied in), Lucide icons, types imported from `shared/schemas` with a small typed fetch wrapper (no codegen), served as static files by the server |
 | Database | PostgreSQL only. Native FTS (`tsvector` generated column + GIN, `ts_rank_cd`, `ts_headline`) and `pg_trgm` for regex |
 | Auth | Local email/password + invites and OIDC login behind one provider interface; PATs in an application-owned table, hashed, scoped. Library: Better Auth, pinned, per ADR 0003 |
 | Tests / gates | Vitest with real-Postgres integration tests, strict TypeScript, oxlint + oxfmt for lint/format (ESLint-compatible rules, same toolchain family as Vite/Rolldown), one root check command |
