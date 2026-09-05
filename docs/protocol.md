@@ -136,10 +136,11 @@ spawns `openhivemind hook` with a synthetic `turn` event `{sessionId, dbPath,
 cwd: session.directory, source: "opencode"}`. The parser reads the session's
 `message` and `part` rows (`node:sqlite`, read-only, WAL) and emits messages
 whose capture cursor is the max `message.time.updated` seen, re-emitting rows
-updated since. Upserts mean a message can change after first capture; the
-ingest replay contract (same seq, different content → 409 and report) covers
-that, so the client keeps a content hash per emitted message and re-sends only
-changed ones as explicit updates. No `session-end` event; the drain runs on the
+updated since. Upserts mean a message can change after first capture: the
+client keeps a content hash per emitted seq and, when it changes, re-sends the
+message with `rev + 1`; the server replaces the row (revision contract in
+`docs/plans/mvp.md` Gate 2). Same seq and rev with a different hash remains a
+409. No `session-end` event; the drain runs on the
 next idle of any session, `sync`, or `doctor`.
 
 Delivered relative to Claude Code: per-idle rather than per-turn capture,

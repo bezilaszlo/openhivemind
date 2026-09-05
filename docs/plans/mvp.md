@@ -26,7 +26,9 @@ work inside a gate is split up or sequenced is not prescribed here.
 ## Gate 1 — foundation and discovery
 
 Exit: workspace and gates run green in CI; harness matrix and fixtures
-committed; auth library decided; normalisation and privacy rules written.
+committed; auth library decided; normalisation and privacy rules written;
+`docs/search.md` written; the domain model below reconciled with the Drizzle
+schema Better Auth actually generates (our tables alongside, names fixed).
 
 - pnpm workspace: `backend/`, `frontend/`, `client/`, `packages/shared/`,
   `fixtures/`. Root `compose.yml` (DoD is `docker compose up` at the root) with
@@ -95,9 +97,11 @@ never a second, hand-maintained contract.
   received_at, completed, tokens{input, output, cache_read, cache_creation})`;
   unique (org_id, source, external_id). Owner is always the PAT's user. Parent
   resolved deferred: a child arriving first stores `parent_external_id` and is
-  linked when the parent arrives; parent must be same org; cycles rejected.
+  linked when the parent arrives; parent must have the same org **and the
+  same owner**, otherwise the child stays unlinked and `doctor` reports it;
+  cycles rejected. Descendant deletion therefore stays owner-only.
 - `agent_message(session_id, seq, kind: prompt|reply|tool_call|summary,
-  source_event_id?, tool_name?, text, ts, branch?, model?, usage?{input,
+  source_event_id?, tool_name?, text, ts, branch?, model?, rev, usage?{input,
   output, cache_read, cache_creation})`; PK (session, seq); FTS column over
   `text` for all kinds; trigram index on `text`. Usage recorded once per
   provider response, as deltas, `null` = unknown. Multiple summaries are kept
@@ -113,8 +117,12 @@ never a second, hand-maintained contract.
   `truncated: true`, never drops), 500 messages per chunk. Server rejects with
   413 and a reason; client never re-sends an unfixable chunk forever: after N
   permanent rejections it marks the chunk dead and `doctor` reports it.
-- Replay: identical (seq, content hash) is a no-op; same seq with different
-  content is 409 and reported, never silently dropped.
+- Revisions: each message carries `rev` (from 1). Same seq, same rev, same
+  content hash: no-op. Same seq, higher rev: the row is replaced (text, usage,
+  FTS, `received_at`); this is how opencode's upserts arrive. Same seq, same
+  rev, different hash: 409 and reported, never silently dropped. Lower rev:
+  no-op. Search and usage totals see only the current rev; totals are
+  recomputed from committed rows after every replace.
 - Metadata merge is monotonic: `completed` never goes false, `branches` union,
   token totals recomputed from committed messages, `last_activity_at` = max
   message ts, `received_at` = server now.
@@ -134,7 +142,8 @@ Every route documents request, response, defaults and hard caps.
   by best hit with deterministic tie-break (score, ts desc, session id).
   Filters: remote, author, branch, since/until, kind, mine. `regex: true` uses
   `~` or `~*` per `caseSensitive`, Postgres dialect documented, invalid pattern
-  400, statement timeout → 408 with partial results flagged. Cursor
+  400, statement timeout → 408 with no results and a hint to narrow the
+  filters (a cancelled statement returns no rows). Cursor
   pagination; `context: N` bounded neighbours; snippets escaped, generated
   only for returned hits.
 - `GET /api/v1/sessions`: filters remote, author, branch, since/until, mine,
@@ -179,10 +188,20 @@ spool → authenticated ingest → list and search → viewer, running from the 
      the budget is tight, then spawn the uploader), `openhivemind sync`,
      `doctor`.
   State is namespaced by server, org, harness and session under
-  `~/.local/state/openhivemind/`; spool size is bounded with oldest-chunk
-  eviction reported by `doctor`; disk-full and truncated/replaced transcripts
-  handled explicitly; ambiguous HTTP outcomes (timeout after send) resolved by
-  the idempotent replay contract.
+  `~/.local/state/openhivemind/`.
+  **Crash recovery**: every spool chunk records the capture-cursor range it
+  covers. On hook start, if a chunk's range starts at or before the persisted
+  cursor, the cursor is advanced to that chunk's end before reading; a chunk is
+  never re-read from the transcript. Anything that still duplicates is absorbed
+  by the replay contract.
+  **Storage full**: the spool has a hard cap per server. At the cap capture
+  pauses for new chunks (the cursor stays put, so nothing is lost) and
+  `doctor` reports "capture paused, N chunks pending"; only acknowledged
+  chunks are ever deleted. Disk-full writes fail the hook cleanly without
+  moving the cursor. Truncated or replaced transcripts (size below cursor,
+  changed inode) restart the cursor at 0 and rely on replay. Ambiguous HTTP
+  outcomes (timeout after send) are resolved by the idempotent replay
+  contract.
 - Server: migrations as reviewed Drizzle Kit SQL, run by an explicit
   `openhivemind migrate` step in the container entrypoint before the server
   starts; the server refuses to start on a pending or failed migration.
