@@ -1,51 +1,105 @@
 @import "tailwindcss";
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Semantic tokens. Warm neutral ground, one teal accent, three harness hues.
+   Every ink token reaches at least 4.5:1 on its own background. */
 :root {
   color-scheme: light;
-  --background: #fbfcfd;
-  --surface: #fff;
-  --sidebar: #f3f5f7;
-  --foreground: #20272f;
-  --muted: #6a7583;
-  --accent: #2868cd;
-  --border: #e1e6ec;
-  --hover: #edf2f9;
-  --prompt: #f4f7fb;
-  --destructive: #be3543;
-  --shadow: 0 16px 60px #10182820;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-size: 14px;
+  --background: #faf8f5;
+  --surface: #fffdfb;
+  --sidebar: #f3efe9;
+  --foreground: #1f2124;
+  --muted: #6b655d;
+  --border: #e7e1d8;
+  --hover: #f2ece4;
+  --accent: #3a8291;
+  --accent-ink: #2f7487;
+  --accent-solid: #2f7487;
+  --on-solid: #ffffff;
+  --destructive: #b3261e;
+  --success: #3f6b57;
+  --warning: #8a5a1a;
+  --focus: #3a8291;
+  --selection: #cfe3e6;
+  --shadow: 0 16px 60px #2a201333;
+  --harness-claude-code: #a8502f;
+  --harness-codex: #4a6e5d;
+  --harness-opencode: #6a5aa5;
+  --harness: var(--muted);
+  --prompt: var(--sidebar);
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #14161a;
+  --surface: #1b1e23;
+  --sidebar: #101215;
+  --foreground: #e8e4de;
+  --muted: #9b958c;
+  --border: #2a2e34;
+  --hover: #22262c;
+  --accent: #3a8291;
+  --accent-ink: #5aa5b4;
+  --accent-solid: #5aa5b4;
+  --on-solid: #14161a;
+  --destructive: #f08c82;
+  --success: #7fbba0;
+  --warning: #d9a257;
+  --focus: #5aa5b4;
+  --selection: #1f4750;
+  --shadow: 0 16px 60px #00000073;
+  --harness-claude-code: #d97757;
+  --harness-codex: #74ac90;
+  --harness-opencode: #9e85d8;
+}
+[data-harness="claude-code"] {
+  --harness: var(--harness-claude-code);
+}
+[data-harness="codex"] {
+  --harness: var(--harness-codex);
+}
+[data-harness="opencode"] {
+  --harness: var(--harness-opencode);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-sidebar: var(--sidebar);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-hover: var(--hover);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-solid: var(--accent-solid);
+  --color-on-solid: var(--on-solid);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-selection: var(--selection);
+  --color-harness: var(--harness);
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+:root {
+  font-family: var(--font-sans);
   background: var(--background);
   color: var(--foreground);
 }
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --background: #161a20;
-  --surface: #1c2129;
-  --sidebar: #12161c;
-  --foreground: #e4eaf2;
-  --muted: #9aa7b8;
-  --accent: #85b3fb;
-  --border: #2d3541;
-  --hover: #242e3d;
-  --prompt: #1d2633;
-  --destructive: #fb8f99;
-  --shadow: 0 16px 60px #0005;
+body {
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --background: #161a20;
-    --surface: #1c2129;
-    --sidebar: #12161c;
-    --foreground: #e4eaf2;
-    --muted: #9aa7b8;
-    --accent: #85b3fb;
-    --border: #2d3541;
-    --hover: #242e3d;
-    --prompt: #1d2633;
-    --destructive: #fb8f99;
-  }
+::selection {
+  background: var(--selection);
 }
+
 * {
   box-sizing: border-box;
 }
@@ -64,7 +118,7 @@ select {
   touch-action: manipulation;
 }
 a {
-  color: var(--accent);
+  color: var(--accent-ink);
   text-decoration: none;
 }
 a:hover {
@@ -81,7 +135,7 @@ button:active {
   transform: translateY(1px);
 }
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
 h1,
@@ -159,7 +213,7 @@ nav a:hover {
 }
 nav a.active {
   background: var(--hover);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 nav a:nth-child(4) {
   margin-top: 27px;
@@ -218,9 +272,9 @@ main {
   background: var(--hover);
 }
 .button.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--on-solid);
 }
 .button.destructive {
   color: var(--destructive);
@@ -429,7 +483,7 @@ input::placeholder {
 .summary-card h2 {
   font-size: 12px;
   margin-bottom: 10px;
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .summary-card p {
   font-size: 13px;
