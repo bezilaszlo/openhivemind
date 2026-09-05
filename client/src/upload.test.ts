@@ -9,6 +9,7 @@ import { stateRoot, upgradePath } from "./state";
 import { drain } from "./upload";
 let home: string, repo: string, config: Config, event: Event;
 let requests: { url: string; chunkId: string }[] = [];
+let sentBodies: string[] = [];
 const waits: number[] = [];
 const sleep = async (ms: number) => void waits.push(ms);
 const accepted = (chunkId: string) =>
@@ -17,6 +18,7 @@ const problem = (status: number, headers?: Record<string, string>) =>
   Response.json({ detail: `rejected ${status}` }, { status, ...(headers ? { headers } : {}) });
 function transport(reply: (index: number, chunkId: string) => Response): typeof fetch {
   return (async (input: URL, init?: RequestInit) => {
+    sentBodies.push(String(init?.body));
     const body = JSON.parse(String(init?.body)) as { chunkId: string };
     requests.push({ url: String(input), chunkId: body.chunkId });
     return reply(requests.length - 1, body.chunkId);
@@ -42,6 +44,7 @@ beforeEach(async () => {
   home = await mkdtemp(join(tmpdir(), "openhivemind-upload-"));
   vi.stubEnv("HOME", home);
   requests = [];
+  sentBodies = [];
   waits.length = 0;
   repo = join(home, "repo");
   await mkdir(repo);
@@ -133,6 +136,14 @@ it("stops every upload and records the upgrade when the protocol is refused", as
   expect(JSON.parse(await readFile(upgradePath(config), "utf8"))).toMatchObject({
     detail: "rejected 426",
   });
+});
+it("captures and delivers a turn appended after the last hook read the transcript", async () => {
+  await spool();
+  await writeFile(event.transcriptPath, [line(0), line(1)].join("\n") + "\n");
+  const result = await drain(config, { transport: transport((_, id) => accepted(id)), sleep });
+  expect(result).toMatchObject({ sent: 2, pending: 0 });
+  const delivered = JSON.parse(String(sentBodies.at(-1))) as { messages: { seq: number }[] };
+  expect(delivered.messages.map((message) => message.seq)).toEqual([2]);
 });
 it("replays a chunk whose outcome was ambiguous", async () => {
   await spool();

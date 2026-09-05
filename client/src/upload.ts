@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rename, rm } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import lockfile from "proper-lockfile";
@@ -155,17 +155,21 @@ export async function drain(
   for (const item of states) {
     const path = join(item.parentPath, item.name);
     const state = JSON.parse(await readFile(path, "utf8")) as State;
-    if (state.paused) {
-      try {
-        restarted = (await capture(state.event, config)).chunks > 0;
-      } catch (error) {
-        if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
-          await atomic(path, { ...state, gap: true });
-        else errors.push("paused capture failed");
-      }
+    // The last turn of a session is written after its own hook read the transcript, so the
+    // drain path is what closes the tail; paused sessions resume here once the cap is freed.
+    const behind = await stat(state.event.transcriptPath).then(
+      (info) => info.size > state.offset || info.ino !== state.inode,
+      () => false,
+    );
+    if (!state.paused && !behind) continue;
+    try {
+      restarted = (await capture(state.event, config)).chunks > 0 || restarted;
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
+        await atomic(path, { ...state, gap: true });
+      else errors.push("recapture failed");
     }
   }
-  // Capture that resumed after the cap was freed produced chunks nobody has drained yet.
   if (!resumed && !stopped && restarted) {
     const next = await drain(config, options, true);
     return { sent: sent + next.sent, pending: next.pending, errors: [...errors, ...next.errors] };

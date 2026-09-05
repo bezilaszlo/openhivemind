@@ -75,7 +75,10 @@ else. Parsing, scrubbing, spooling and upload are harness-neutral.
 
 3. **Drain triggers**: next hook of any session, `SessionEnd` (spool only if
    the budget is tight, then spawn the uploader), `openhivemind sync`,
-   `doctor`.
+   `doctor`. Every drain first re-runs capture on each session whose
+   transcript grew past its cursor (or changed inode) and on each paused
+   session: a harness writes the last turn after its own hook has read the
+   file, so the drain path, not a further turn, is what closes the tail.
 
 State is namespaced by server, org, harness and session under
 `~/.local/state/openhivemind/`.
