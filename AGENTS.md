@@ -17,7 +17,7 @@ Keep code lean. Delete replaced paths; compatibility needs a named external
 contract. TypeBox schemas are the single wire contract; validate unknown data.
 Tests assert behavior, including privacy and tenant boundaries. Unit tests live
 beside modules; acceptance tests live in package test directories. Suppressions
-must be targeted and justified. Never log secrets or transcript contents.
+must be targeted and justified. Gates and lint rules: docs/decisions/0004-quality-gates.md. Never log secrets or transcript contents.
 
 Update relevant docs with user-visible behavior. Use Conventional Commits; no
 agent attribution trailers. Verify author, committer and GitHub writer identity
