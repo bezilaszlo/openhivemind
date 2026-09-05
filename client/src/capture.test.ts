@@ -12,7 +12,9 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { capture, allowed, stateRoot, type Config, type Event } from "./capture";
+import { capture, allowed, type Event } from "./capture";
+import { stateRoot } from "./state";
+import type { Config } from "./config";
 let folder: string, repo: string, event: Event, config: Config;
 beforeEach(async () => {
   folder = await mkdtemp(join(tmpdir(), "openhivemind-capture-"));

@@ -1,7 +1,7 @@
-import { mkdir, readFile, open, rename, readdir, stat, realpath, rm } from "node:fs/promises";
-import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, open, readdir, stat, realpath, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
-import { join, dirname, relative, isAbsolute, resolve } from "node:path";
+import { join, relative, isAbsolute, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import lockfile from "proper-lockfile";
@@ -15,16 +15,9 @@ import {
   type Chunk,
   type Message,
 } from "@openhivemind/shared";
+import { atomic, digest, stateRoot } from "./state";
+import type { Config } from "./config";
 const exec = promisify(execFile);
-export interface Config {
-  server: string;
-  token: string;
-  org: string;
-  roots: string[];
-  exclude: string[];
-  readOnly?: boolean;
-  spoolLimit?: number;
-}
 export interface Event {
   sessionId: string;
   transcriptPath: string;
@@ -53,49 +46,6 @@ interface Envelope {
   chunks: Chunk[];
   after: State;
 }
-const digest = (text: string) => createHash("sha256").update(text).digest("hex");
-export const configPath = () => join(homedir(), ".config/openhivemind/config.json");
-export async function loadConfig(): Promise<Config> {
-  const value = JSON.parse(await readFile(configPath(), "utf8")) as Config;
-  if (
-    !value ||
-    typeof value.server !== "string" ||
-    typeof value.token !== "string" ||
-    typeof value.org !== "string" ||
-    !Array.isArray(value.roots) ||
-    !Array.isArray(value.exclude)
-  )
-    throw new Error("Invalid configuration; run setup");
-  return value;
-}
-export async function atomic(path: string, value: unknown) {
-  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-  const temp = path + "." + randomUUID() + ".tmp";
-  try {
-    const file = await open(temp, "wx", 0o600);
-    try {
-      await file.writeFile(JSON.stringify(value));
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rename(temp, path);
-    const directory = await open(dirname(path), "r");
-    try {
-      await directory.sync();
-    } finally {
-      await directory.close();
-    }
-  } finally {
-    await rm(temp, { force: true });
-  }
-}
-export const stateRoot = (config: Config) =>
-  join(
-    homedir(),
-    ".local/state/openhivemind",
-    digest(config.server + "/" + config.org).slice(0, 24),
-  );
 function inside(path: string, root: string) {
   const rel = relative(root, path);
   return rel === "" || (!rel.startsWith("../") && rel !== ".." && !isAbsolute(rel));
@@ -152,13 +102,15 @@ async function readState(folder: string, event: Event): Promise<State> {
     };
   }
 }
+export const sessionFolder = (config: Config, source: string, sessionId: string) =>
+  join(stateRoot(config), source, digest(sessionId));
 export async function capture(
   event: Event,
   config: Config,
   options: { dryRun?: boolean; afterChunk?: () => Promise<void> } = {},
-): Promise<{ status: string; chunks: number; payloads?: Chunk[] }> {
+): Promise<{ status: string; chunks: number; bytes: number; payloads?: Chunk[] }> {
   if (config.readOnly || !(await allowed(event.cwd, config)))
-    return { status: "excluded", chunks: 0 };
+    return { status: "excluded", chunks: 0, bytes: 0 };
   let remote: string;
   try {
     remote = normalizeRemote(
@@ -170,13 +122,13 @@ export async function capture(
       ).stdout,
     );
   } catch {
-    return { status: "no origin", chunks: 0 };
+    return { status: "no origin", chunks: 0, bytes: 0 };
   }
   const extra = await patterns(event.cwd);
   if (JSON.stringify(scrubValue(event, extra)) !== JSON.stringify(event))
-    return { status: "sensitive locator", chunks: 0 };
+    return { status: "sensitive locator", chunks: 0, bytes: 0 };
   const root = stateRoot(config);
-  const folder = join(root, event.source, digest(event.sessionId));
+  const folder = sessionFolder(config, event.source, event.sessionId);
   await mkdir(folder, { recursive: true, mode: 0o700 });
   const release = await lockfile.lock(folder, {
     stale: 10000,
@@ -203,7 +155,9 @@ export async function capture(
       await file.close();
     }
     const end = buffer.lastIndexOf(10);
-    if (end < 0) return { status: "no complete records", chunks: 0 };
+    // A session-end after the last turn still has to deliver the completed flag.
+    const closing = Boolean(event.completed) && Boolean(state.meta) && !state.meta?.completed;
+    if (end < 0 && !closing) return { status: "no complete records", chunks: 0, bytes: 0 };
     const lines = buffer
       .subarray(0, end + 1)
       .toString("utf8")
@@ -299,14 +253,14 @@ export async function capture(
     }
     if (batch.length || state.meta?.completed !== meta.completed)
       payloads.push({ protocolVersion: 1, chunkId: randomUUID(), meta, messages: batch });
-    if (options.dryRun) return { status: "dry run", chunks: payloads.length, payloads };
+    if (options.dryRun) return { status: "dry run", chunks: payloads.length, bytes: 0, payloads };
     // One envelope carries all chunks from a capture, so recovery cannot skip a partly-spooled batch.
     const envelope = { chunks: payloads, after };
     const serialized = JSON.stringify(envelope);
     const pendingSize = await spoolBytes(root);
     if (pendingSize + Buffer.byteLength(serialized) > (config.spoolLimit ?? 256 * 1024 * 1024)) {
       await atomic(join(folder, "state.json"), { ...state, event, paused: true });
-      return { status: "paused", chunks: 0 };
+      return { status: "paused", chunks: 0, bytes: 0 };
     }
     if (payloads.length) {
       await atomic(
@@ -316,7 +270,11 @@ export async function capture(
       await options.afterChunk?.();
     }
     await atomic(join(folder, "state.json"), after);
-    return { status: "captured", chunks: payloads.length };
+    return {
+      status: "captured",
+      chunks: payloads.length,
+      bytes: payloads.length ? Buffer.byteLength(serialized) : 0,
+    };
   } finally {
     await release();
   }

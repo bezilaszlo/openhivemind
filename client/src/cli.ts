@@ -2,11 +2,14 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createApi, routes } from "@openhivemind/shared";
+import { hook } from "./commands/hook";
+import { sync } from "./commands/sync";
+import { loadConfig } from "./config";
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === "--help" || command === "help") {
     console.log(
-      "Open Hivemind (development)\n\nCommands: config <server-url>, skills [name]\nCapture and read commands are under implementation.\nExit codes: 0 success, 1 empty, 2 usage/request error.",
+      "Open Hivemind (development)\n\nCommands: hook [--dry-run], sync, config <server-url>, skills [name]\nRead commands are under implementation.\nExit codes: 0 success, 1 empty, 2 usage/request error.",
     );
     return;
   }
@@ -21,6 +24,21 @@ async function main() {
       if (!names.includes(args[0])) throw new Error("Unknown skill");
       console.log(await readFile(resolve(folder, args[0], "SKILL.md"), "utf8"));
     } else console.log(names.join("\n"));
+    return;
+  }
+  if (command === "hook") {
+    await hook({ dryRun: args.includes("--dry-run") });
+    return;
+  }
+  if (command === "sync" && !args.length) {
+    const result = await sync(await loadConfig());
+    console.log(
+      result.skipped
+        ? "Another uploader is running."
+        : `Uploaded ${result.sent} chunk(s); ${result.pending} pending.`,
+    );
+    for (const error of new Set(result.errors)) console.error(error);
+    if (result.errors.length) process.exitCode = 2;
     return;
   }
   if (command === "config" && args.length === 1) {
