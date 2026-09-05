@@ -1,0 +1,422 @@
+import { mkdir, readFile, open, rename, readdir, stat, realpath, rm } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { homedir } from "node:os";
+import { join, dirname, relative, isAbsolute, resolve } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import lockfile from "proper-lockfile";
+import {
+  normalizeRemote,
+  parseRecords,
+  scrubValue,
+  ignorePatterns,
+  type ParsedMessage,
+  type Meta,
+  type Chunk,
+  type Message,
+} from "@openhivemind/shared";
+const exec = promisify(execFile);
+export interface Config {
+  server: string;
+  token: string;
+  org: string;
+  roots: string[];
+  exclude: string[];
+  readOnly?: boolean;
+  spoolLimit?: number;
+}
+export interface Event {
+  sessionId: string;
+  transcriptPath: string;
+  cwd: string;
+  source: Meta["source"];
+  version?: string;
+  completed?: boolean;
+  parentId?: string;
+}
+interface State {
+  generation: number;
+  offset: number;
+  inode: number;
+  recordIndex: number;
+  nextSeq: number;
+  entries: Record<string, { seq: number; rev: number; hash: string }>;
+  pending: ParsedMessage[];
+  seenUsage: string[];
+  model?: string;
+  meta?: Meta;
+  paused?: boolean;
+  gap?: boolean;
+  event: Event;
+}
+interface Envelope {
+  chunks: Chunk[];
+  after: State;
+}
+const digest = (text: string) => createHash("sha256").update(text).digest("hex");
+export const configPath = () => join(homedir(), ".config/openhivemind/config.json");
+export async function loadConfig(): Promise<Config> {
+  const value = JSON.parse(await readFile(configPath(), "utf8")) as Config;
+  if (
+    !value ||
+    typeof value.server !== "string" ||
+    typeof value.token !== "string" ||
+    typeof value.org !== "string" ||
+    !Array.isArray(value.roots) ||
+    !Array.isArray(value.exclude)
+  )
+    throw new Error("Invalid configuration; run setup");
+  return value;
+}
+export async function atomic(path: string, value: unknown) {
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  const temp = path + "." + randomUUID() + ".tmp";
+  try {
+    const file = await open(temp, "wx", 0o600);
+    try {
+      await file.writeFile(JSON.stringify(value));
+      await file.sync();
+    } finally {
+      await file.close();
+    }
+    await rename(temp, path);
+    const directory = await open(dirname(path), "r");
+    try {
+      await directory.sync();
+    } finally {
+      await directory.close();
+    }
+  } finally {
+    await rm(temp, { force: true });
+  }
+}
+export const stateRoot = (config: Config) =>
+  join(
+    homedir(),
+    ".local/state/openhivemind",
+    digest(config.server + "/" + config.org).slice(0, 24),
+  );
+function inside(path: string, root: string) {
+  const rel = relative(root, path);
+  return rel === "" || (!rel.startsWith("../") && rel !== ".." && !isAbsolute(rel));
+}
+export async function allowed(cwd: string, config: Config) {
+  const path = await realpath(cwd);
+  const resolveAll = (paths: string[]) => Promise.all(paths.map((path) => realpath(resolve(path))));
+  const [roots, exclude] = await Promise.all([
+    resolveAll(config.roots),
+    resolveAll(config.exclude),
+  ]);
+  return (
+    !exclude.some((root) => inside(path, root)) &&
+    (!roots.length || roots.some((root) => inside(path, root)))
+  );
+}
+async function patterns(cwd: string) {
+  const result: RegExp[] = [];
+  let root = cwd;
+  try {
+    root = (
+      await exec("git", ["-C", cwd, "rev-parse", "--show-toplevel"], { timeout: 5000 })
+    ).stdout.trim();
+  } catch {}
+  for (const path of [
+    join(root, ".openhivemind-ignore"),
+    join(homedir(), ".config/openhivemind/ignore"),
+  ]) {
+    try {
+      result.push(...ignorePatterns(await readFile(path, "utf8")));
+    } catch (error) {
+      if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT"))
+        throw error;
+    }
+  }
+  return result;
+}
+async function readState(folder: string, event: Event): Promise<State> {
+  try {
+    return JSON.parse(await readFile(join(folder, "state.json"), "utf8")) as State;
+  } catch (error) {
+    if (!(error && typeof error === "object" && "code" in error && error.code === "ENOENT"))
+      throw error;
+    return {
+      generation: 0,
+      offset: 0,
+      inode: 0,
+      recordIndex: 0,
+      nextSeq: 1,
+      entries: {},
+      pending: [],
+      seenUsage: [],
+      event,
+    };
+  }
+}
+export async function capture(
+  event: Event,
+  config: Config,
+  options: { dryRun?: boolean; afterChunk?: () => Promise<void> } = {},
+): Promise<{ status: string; chunks: number; payloads?: Chunk[] }> {
+  if (config.readOnly || !(await allowed(event.cwd, config)))
+    return { status: "excluded", chunks: 0 };
+  let remote: string;
+  try {
+    remote = normalizeRemote(
+      (
+        await exec("git", ["-C", event.cwd, "remote", "get-url", "origin"], {
+          timeout: 5000,
+          maxBuffer: 65536,
+        })
+      ).stdout,
+    );
+  } catch {
+    return { status: "no origin", chunks: 0 };
+  }
+  const extra = await patterns(event.cwd);
+  if (JSON.stringify(scrubValue(event, extra)) !== JSON.stringify(event))
+    return { status: "sensitive locator", chunks: 0 };
+  const root = stateRoot(config);
+  const folder = join(root, event.source, digest(event.sessionId));
+  await mkdir(folder, { recursive: true, mode: 0o700 });
+  const release = await lockfile.lock(folder, {
+    stale: 10000,
+    update: 3000,
+    retries: { retries: 3, minTimeout: 25, maxTimeout: 100 },
+  });
+  try {
+    let state = await readState(folder, event);
+    const files = (await readdir(folder)).filter((name) => name.endsWith(".batch.json")).sort();
+    for (const name of files) {
+      const envelope = JSON.parse(await readFile(join(folder, name), "utf8")) as Envelope;
+      if (envelope.after.generation > state.generation) state = envelope.after;
+    }
+    const info = await stat(event.transcriptPath);
+    const restart = info.ino !== state.inode || info.size < state.offset;
+    const offset = restart ? 0 : state.offset;
+    const file = await open(event.transcriptPath, "r");
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.alloc(Math.min(info.size - offset, 16 * 1024 * 1024));
+      const result = await file.read(buffer, 0, buffer.length, offset);
+      buffer = buffer.subarray(0, result.bytesRead);
+    } finally {
+      await file.close();
+    }
+    const end = buffer.lastIndexOf(10);
+    if (end < 0) return { status: "no complete records", chunks: 0 };
+    const lines = buffer
+      .subarray(0, end + 1)
+      .toString("utf8")
+      .split("\n")
+      .filter(Boolean);
+    const records = lines.map((line) => JSON.parse(line) as unknown);
+    const parsed = parseRecords(event.source, records, {
+      messages: restart ? [] : state.pending,
+      seenUsage: restart ? [] : state.seenUsage,
+      indexOffset: restart ? 0 : state.recordIndex,
+      model: state.model,
+    });
+    const safe = scrubValue(parsed, extra) as typeof parsed;
+    const meta = scrubValue(
+      {
+        ...state.meta,
+        ...safe.meta,
+        source: event.source,
+        version: event.version ?? safe.meta.version ?? state.meta?.version ?? "unknown",
+        remote,
+        cwd: event.cwd,
+        branch: safe.meta.branch ?? state.meta?.branch ?? "",
+        branches: [...new Set([...(state.meta?.branches ?? []), safe.meta.branch ?? ""])],
+        title:
+          state.meta?.title ??
+          safe.messages.find((message) => message.kind === "prompt")?.text.slice(0, 4096) ??
+          "Untitled session",
+        started_at: state.meta?.started_at ?? safe.messages[0]?.ts ?? new Date().toISOString(),
+        completed: Boolean(state.meta?.completed || event.completed),
+        spawn_depth: state.meta?.spawn_depth ?? 0,
+        models: [
+          ...new Set([
+            ...(state.meta?.models ?? []),
+            ...safe.messages.flatMap((message) => (message.model ? [message.model] : [])),
+          ]),
+        ],
+        ...(event.parentId ? { parent_external_id: event.parentId } : {}),
+      },
+      extra,
+    ) as Meta;
+    const entries = { ...state.entries };
+    const messages: Message[] = [];
+    let nextSeq = state.nextSeq;
+    for (const message of safe.messages) {
+      const parts: string[] = [];
+      let text = message.text;
+      while (Buffer.byteLength(text) > 60000) {
+        let length = Math.min(text.length, 15000);
+        if (/[\uD800-\uDBFF]/.test(text[length - 1] ?? "")) length--;
+        parts.push(text.slice(0, length));
+        text = text.slice(length);
+      }
+      parts.push(text);
+      for (const [partIndex, text] of parts.entries()) {
+        const key = digest(message.source_event_id + ":" + partIndex);
+        const data = {
+          ...message,
+          text,
+          source_event_id: key,
+          ...(parts.length > 1 ? { truncated: true } : {}),
+          ...(partIndex > 0 ? { usage: null } : {}),
+        };
+        const hash = digest(JSON.stringify(data));
+        const prior = entries[key];
+        if (prior?.hash === hash) continue;
+        const entry = { seq: prior?.seq ?? nextSeq++, rev: (prior?.rev ?? 0) + 1, hash };
+        entries[key] = entry;
+        messages.push({ ...data, seq: entry.seq, rev: entry.rev });
+      }
+    }
+    const after: State = {
+      generation: state.generation + 1,
+      offset: offset + end + 1,
+      inode: info.ino,
+      recordIndex: (restart ? 0 : state.recordIndex) + records.length,
+      nextSeq,
+      entries,
+      pending: safe.messages.slice(-16),
+      seenUsage: safe.state.seenUsage,
+      model: safe.state.model,
+      meta,
+      event,
+      paused: false,
+    };
+    const payloads: Chunk[] = [];
+    let batch: Message[] = [];
+    for (const message of messages) {
+      if (batch.length >= 500 || Buffer.byteLength(JSON.stringify([...batch, message])) > 1500000) {
+        payloads.push({ protocolVersion: 1, chunkId: randomUUID(), meta, messages: batch });
+        batch = [];
+      }
+      batch.push(message);
+    }
+    if (batch.length || state.meta?.completed !== meta.completed)
+      payloads.push({ protocolVersion: 1, chunkId: randomUUID(), meta, messages: batch });
+    if (options.dryRun) return { status: "dry run", chunks: payloads.length, payloads };
+    // One envelope carries all chunks from a capture, so recovery cannot skip a partly-spooled batch.
+    const envelope = { chunks: payloads, after };
+    const serialized = JSON.stringify(envelope);
+    const pendingSize = await spoolBytes(root);
+    if (pendingSize + Buffer.byteLength(serialized) > (config.spoolLimit ?? 256 * 1024 * 1024)) {
+      await atomic(join(folder, "state.json"), { ...state, event, paused: true });
+      return { status: "paused", chunks: 0 };
+    }
+    if (payloads.length) {
+      await atomic(
+        join(folder, String(after.generation).padStart(16, "0") + ".batch.json"),
+        envelope,
+      );
+      await options.afterChunk?.();
+    }
+    await atomic(join(folder, "state.json"), after);
+    return { status: "captured", chunks: payloads.length };
+  } finally {
+    await release();
+  }
+}
+export async function spoolBytes(root: string): Promise<number> {
+  let total = 0;
+  for (const file of await readdir(root, { recursive: true, withFileTypes: true })) {
+    if (file.isFile() && file.name.endsWith(".batch.json"))
+      total += (await stat(join(file.parentPath, file.name))).size;
+  }
+  return total;
+}
+export async function drain(
+  config: Config,
+  resumed = false,
+): Promise<{ sent: number; pending: number; errors: string[] }> {
+  const root = stateRoot(config);
+  await mkdir(root, { recursive: true, mode: 0o700 });
+  let sent = 0;
+  const errors: string[] = [];
+  const files = (await readdir(root, { recursive: true, withFileTypes: true }))
+    .filter((file) => file.isFile() && file.name.endsWith(".batch.json"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  for (const item of files) {
+    const path = join(item.parentPath, item.name);
+    let release: (() => Promise<void>) | undefined;
+    try {
+      release = await lockfile.lock(item.parentPath, { stale: 10000, update: 3000, retries: 0 });
+      const batch = JSON.parse(await readFile(path, "utf8")) as { chunks: Chunk[]; after: State };
+      let completed = true;
+      if (!(await allowed(batch.after.event.cwd, config))) {
+        errors.push("excluded pending session");
+        continue;
+      }
+      // Reconcile before acknowledgements remove the only recovery record.
+      const state = await readState(item.parentPath, batch.after.event);
+      if (batch.after.generation > state.generation)
+        await atomic(join(item.parentPath, "state.json"), batch.after);
+      for (const chunk of batch.chunks) {
+        const response = await fetch(
+          config.server.replace(/\/$/, "") +
+            "/api/v1/ingest/sessions/" +
+            encodeURIComponent(batch.after.event.sessionId),
+          {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${config.token}`,
+              "content-type": "application/json",
+              "x-openhivemind-protocol": "1",
+            },
+            body: JSON.stringify(chunk),
+            signal: AbortSignal.timeout(10000),
+          },
+        );
+        if (response.status === 410) {
+          break;
+        }
+        if (response.status !== 202) {
+          errors.push(`HTTP ${response.status}`);
+          completed = false;
+          break;
+        }
+        sent++;
+      }
+      if (completed) await rm(path);
+    } catch (error) {
+      errors.push(
+        error && typeof error === "object" && "code" in error
+          ? String(error.code)
+          : "upload failed",
+      );
+    } finally {
+      await release?.();
+    }
+  }
+  const states = (await readdir(root, { recursive: true, withFileTypes: true })).filter(
+    (file) => file.isFile() && file.name === "state.json",
+  );
+  for (const item of states) {
+    const path = join(item.parentPath, item.name);
+    const state = JSON.parse(await readFile(path, "utf8")) as State;
+    if (state.paused) {
+      try {
+        await capture(state.event, config);
+      } catch (error) {
+        if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
+          await atomic(path, { ...state, gap: true });
+        else errors.push("paused capture failed");
+      }
+    }
+  }
+  if (!resumed && states.length) {
+    const next = await drain(config, true);
+    return { sent: sent + next.sent, pending: next.pending, errors: [...errors, ...next.errors] };
+  }
+  return {
+    sent,
+    pending: (await readdir(root, { recursive: true })).filter((name) =>
+      name.endsWith(".batch.json"),
+    ).length,
+    errors,
+  };
+}

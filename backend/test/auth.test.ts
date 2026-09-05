@@ -72,3 +72,55 @@ it("bootstraps exactly one org, requires invitations, and mints hashed PATs thro
   });
   expect(csrf.statusCode).toBe(403);
 });
+
+it("accepts a single-use open invite and rejects replay", async () => {
+  const first = await app.inject({
+    method: "POST",
+    url: "/api/auth/sign-up/email",
+    headers: { origin: url },
+    payload: { name: "Admin", email: "admin@example.test", password: "integration-password-123" },
+  });
+  expect(first.statusCode).toBe(200);
+  const { randomUUID } = await import("node:crypto");
+  const { hash } = await import("../src/auth/bridge");
+  const org = (await pool.query("SELECT org_id FROM bootstrap")).rows[0].org_id;
+  const creator = first.json().user.id;
+  await pool.query(
+    "INSERT INTO invite(id,org_id,role,token_sha256,expires_at,created_by) VALUES($1,$2,$3,$4,now()+interval '1 day',$5)",
+    [randomUUID(), org, "member", hash("test-invite"), creator],
+  );
+  const second = await app.inject({
+    method: "POST",
+    url: "/api/auth/sign-up/email",
+    headers: { origin: url, "x-openhivemind-invite": "test-invite" },
+    payload: { name: "Member", email: "member@example.test", password: "integration-password-123" },
+  });
+  expect(second.statusCode, second.body).toBe(200);
+  expect(
+    (await pool.query("SELECT role FROM auth.member WHERE user_id=$1", [second.json().user.id]))
+      .rows,
+  ).toEqual([{ role: "member" }]);
+  const replay = await app.inject({
+    method: "POST",
+    url: "/api/auth/sign-up/email",
+    headers: { origin: url, "x-openhivemind-invite": "test-invite" },
+    payload: { name: "Replay", email: "replay@example.test", password: "integration-password-123" },
+  });
+  expect(replay.statusCode).toBe(403);
+});
+
+it("serializes concurrent first registrations", async () => {
+  const responses = await Promise.all(
+    ["one", "two"].map((name) =>
+      app.inject({
+        method: "POST",
+        url: "/api/auth/sign-up/email",
+        headers: { origin: url },
+        payload: { name, email: `${name}@example.test`, password: "integration-password-123" },
+      }),
+    ),
+  );
+  expect(responses.map((response) => response.statusCode).sort()).toEqual([200, 403]);
+  expect((await pool.query("SELECT id FROM auth.organization")).rowCount).toBe(1);
+  expect((await pool.query("SELECT id FROM auth.member")).rowCount).toBe(1);
+});

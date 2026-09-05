@@ -50,6 +50,7 @@ export function createAuth(pool: pg.Pool, config: AuthConfig) {
                   clientSecret: config.oidc.clientSecret,
                   scopes: ["openid", "profile", "email"],
                   pkce: true,
+                  requireIdTokenVerification: true,
                 },
               ],
             }),

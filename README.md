@@ -7,9 +7,18 @@ Shared, searchable history of coding-agent sessions for a team. Self-hosted.
 - [docs/decisions/](docs/decisions/) — why things are the way they are
 
 **Status: MVP implementation in progress.** The workspace, shared contracts,
-privacy/search/parser unit tests, API reference and initial local-auth database
-integration are runnable. Capture, data routes, OIDC acceptance, the viewer and
-release acceptance are unfinished; this is not v1.
+privacy/search/parser tests, authenticated data routes, local/OIDC integration
+and the interactive viewer are runnable. Durable capture has unit coverage but
+is not yet connected to the packaged CLI or native harness plugins. Full
+release acceptance remains unfinished; this is not v1.
+
+## Frontend preview
+
+Run `pnpm --filter @openhivemind/frontend dev:demo` and open
+http://127.0.0.1:5173. The labelled demo provides illustrative sessions for
+browsing the reader, search, usage, tokens and organisation screens without login
+or capture. Demo changes are in memory and disappear on reload. The regular
+`dev` command connects to the real backend through the Vite proxy.
 
 ## Development
 

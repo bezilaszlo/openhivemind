@@ -66,7 +66,8 @@ export async function mountAuth(app: FastifyInstance, pool: pg.Pool, auth: Auth,
       if (path?.startsWith("/api/auth/organization/"))
         throw new HttpError(404, "Use the organisation API");
       const isRegister = path === "/api/auth/sign-up/email";
-      const gate = isRegister ? await pool.connect() : undefined;
+      const isCallback = path?.startsWith("/api/auth/callback/");
+      const gate = isRegister || isCallback ? await pool.connect() : undefined;
       try {
         if (gate) await gate.query("SELECT pg_advisory_lock(726142)");
         const body = request.body as Record<string, unknown> | undefined;
@@ -121,6 +122,28 @@ export async function mountAuth(app: FastifyInstance, pool: pg.Pool, auth: Auth,
               );
             }
           });
+        }
+        if (isCallback && response.status === 302) {
+          const cookie = response.headers
+            .getSetCookie()
+            .map((value) => value.split(";")[0])
+            .join("; ");
+          const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
+          if (session)
+            await transaction(pool, async (db) => {
+              const existing = await db.query("SELECT org_id FROM bootstrap WHERE id=1");
+              if (existing.rowCount) return;
+              const org = randomUUID();
+              await db.query(
+                "INSERT INTO auth.organization(id,name,slug,created_at) VALUES($1,$2,$3,now())",
+                [org, "Open Hivemind", "openhivemind"],
+              );
+              await db.query("INSERT INTO bootstrap(id,org_id) VALUES(1,$1)", [org]);
+              await db.query(
+                "INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,$2,$3,$4,now())",
+                [randomUUID(), org, session.user.id, "admin"],
+              );
+            });
         }
         reply.code(response.status);
         response.headers.forEach((value, key) => {

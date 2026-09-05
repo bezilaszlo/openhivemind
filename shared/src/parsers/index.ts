@@ -14,12 +14,22 @@ export type ParsedMessage = Omit<Message, "seq" | "rev"> & { source_event_id: st
 export interface Parsed {
   messages: ParsedMessage[];
   meta: Partial<Meta>;
+  state: { model?: string; seenUsage: string[] };
 }
-export function parseRecords(source: Meta["source"], rows: readonly unknown[]): Parsed {
-  const messages: ParsedMessage[] = [];
+export function parseRecords(
+  source: Meta["source"],
+  rows: readonly unknown[],
+  previous?: {
+    messages: ParsedMessage[];
+    model?: string;
+    seenUsage: string[];
+    indexOffset: number;
+  },
+): Parsed {
+  const messages: ParsedMessage[] = previous?.messages.map((message) => ({ ...message })) ?? [];
   const meta: Partial<Meta> = {};
-  let model: string | undefined;
-  const usageSeen = new Set<string>();
+  let model: string | undefined = previous?.model;
+  const usageSeen = new Set<string>(previous?.seenUsage);
   rows.forEach((row, index) => {
     const data = record(row),
       payload = record(data.payload),
@@ -30,7 +40,10 @@ export function parseRecords(source: Meta["source"], rows: readonly unknown[]): 
         ? new Date(data.created_at).toISOString()
         : "1970-01-01T00:00:00.000Z",
     );
-    const id = str(data.uuid, str(data.id, `${source}:${data.ordinal ?? index}`));
+    const id = str(
+      data.uuid,
+      str(data.id, `${source}:${data.ordinal ?? index + (previous?.indexOffset ?? 0)}`),
+    );
     const branch = str(data.gitBranch);
     function emit(
       kind: Message["kind"],
@@ -106,14 +119,16 @@ export function parseRecords(source: Meta["source"], rows: readonly unknown[]): 
       }
       if (data.type === "token_usage_record") {
         const usage = record(payload.usage);
-        const responseId = str(payload.turn_id, id);
-        const target = [...messages].reverse().find((item) => item.kind === "reply" && !item.usage);
+        const responseId = str(payload.response_id, id);
+        const target = [...messages]
+          .reverse()
+          .find((item) => (item.kind === "reply" || item.kind === "tool_call") && !item.usage);
         if (target && !usageSeen.has(responseId)) {
           target.usage = {
             input: Math.max(0, num(usage.input_tokens) - num(usage.cached_input_tokens)),
             output: num(usage.output_tokens),
             cache_read: num(usage.cached_input_tokens),
-            cache_creation: 0,
+            cache_creation: num(usage.cache_write_input_tokens),
           };
           usageSeen.add(responseId);
         }
@@ -142,7 +157,7 @@ export function parseRecords(source: Meta["source"], rows: readonly unknown[]): 
         const suffix = str(part.id, String(blockIndex));
         if (part.type === "text")
           emit(
-            info.summary ? "summary" : info.role === "user" ? "prompt" : "reply",
+            info.summary === true ? "summary" : info.role === "user" ? "prompt" : "reply",
             str(part.text),
             suffix,
           );
@@ -165,5 +180,5 @@ export function parseRecords(source: Meta["source"], rows: readonly unknown[]): 
         };
     }
   });
-  return { messages, meta };
+  return { messages, meta, state: { ...(model ? { model } : {}), seenUsage: [...usageSeen] } };
 }

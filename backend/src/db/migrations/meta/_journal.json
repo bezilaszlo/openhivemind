@@ -8,6 +8,13 @@
       "when": 1788622063283,
       "tag": "0000_icy_boomerang",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788623651464,
+      "tag": "0001_search_indexes",
+      "breakpoints": true
     }
   ]
 }

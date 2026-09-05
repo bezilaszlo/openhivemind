@@ -15,6 +15,9 @@
   "scripts": {
     "build": "tsup"
   },
+  "dependencies": {
+    "proper-lockfile": "4.1.2"
+  },
   "devDependencies": {
     "@openhivemind/shared": "workspace:*"
   },

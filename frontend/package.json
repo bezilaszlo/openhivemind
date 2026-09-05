@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite --host 127.0.0.1"
+    "dev": "vite --host 127.0.0.1",
+    "dev:demo": "VITE_DEMO=1 vite --host 127.0.0.1"
   },
   "dependencies": {
     "@openhivemind/shared": "workspace:*",

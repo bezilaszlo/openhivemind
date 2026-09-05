@@ -7,6 +7,7 @@ import { buildApp } from "./app";
 import { database, migrate, verifyMigrations } from "./db/index";
 import { createAuth } from "./auth/index";
 import { mountAuth } from "./auth/bridge";
+import { handlers } from "./services";
 const url = process.env.APP_URL ?? "http://localhost:3000";
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required");
@@ -35,8 +36,23 @@ if (process.argv[2] === "migrate") {
     secret = await readFile(path, "utf8");
   }
   if (secret.length < 32) throw new Error("AUTH_SECRET must contain at least 32 characters");
-  const app = await buildApp({ url });
-  const auth = createAuth(pool, { url, secret });
+  const auth = createAuth(pool, {
+    url,
+    secret,
+    ...(process.env.OIDC_ISSUER && process.env.OIDC_CLIENT_ID && process.env.OIDC_CLIENT_SECRET
+      ? {
+          oidc: {
+            issuer: process.env.OIDC_ISSUER,
+            clientId: process.env.OIDC_CLIENT_ID,
+            clientSecret: process.env.OIDC_CLIENT_SECRET,
+          },
+        }
+      : {}),
+  });
+  const app = await buildApp({
+    url,
+    handlers: handlers(pool, auth, url, Number(process.env.RETENTION_DAYS ?? 90)),
+  });
   await mountAuth(app, pool, auth, url);
   await app.register(staticFiles, { root: resolve(import.meta.dirname, "../../frontend/dist") });
   app.get("/health/ready", async () => {

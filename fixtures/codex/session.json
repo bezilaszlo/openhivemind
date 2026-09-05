@@ -1,0 +1,1237 @@
+[
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 0,
+    "type": "session_meta",
+    "payload": {
+      "session_id": "fixture-id-1",
+      "id": "fixture-id-1",
+      "timestamp": "2026-09-05T10:00:00.000Z",
+      "cwd": "/projects/example",
+      "originator": "[removed]",
+      "cli_version": "0.153.4",
+      "source": "[removed]",
+      "thread_source": "[removed]",
+      "model_provider": "fixture-id-2",
+      "base_instructions": {
+        "text": "Fixture text",
+        "provenance": {
+          "type": "fixture-other",
+          "model": "fixture-model"
+        }
+      },
+      "history_mode": "[removed]",
+      "context_window": {
+        "window_id": "fixture-id-3"
+      },
+      "git": {
+        "commit_hash": "[removed]",
+        "branch": "main"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 1,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "turn_id": "fixture-id-4",
+      "started_at": 1788610964,
+      "model_context_window": 258400,
+      "collaboration_mode_kind": "[removed]"
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 2,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-5",
+      "role": "developer",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        },
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        },
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        },
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4",
+        "create_time": 1788610967.4676626,
+        "content_item_kinds": ["[removed]", "[removed]", "[removed]", "[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 3,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-6",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        },
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4",
+        "create_time": 1788610967.467664,
+        "content_item_kinds": ["[removed]", "[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 4,
+    "type": "world_state",
+    "payload": {
+      "full": true,
+      "state": {
+        "agents_md": {},
+        "apps_instructions": true,
+        "collaboration_mode": {
+          "mode": "[removed]",
+          "model": "fixture-model",
+          "instructions": "[removed]"
+        },
+        "context_window_guidance": "fixture-id-7",
+        "environments": {
+          "environments": {
+            "local": {
+              "cwd": "/projects/example",
+              "status": "[removed]",
+              "shell": "[removed]"
+            }
+          },
+          "current_date": "[removed]",
+          "timezone": "[removed]",
+          "filesystem": "[removed]"
+        },
+        "environments_instructions": false,
+        "git_attribution": false,
+        "host_skills": {
+          "body": "[removed]",
+          "includeInstructions": true
+        },
+        "managed_developer_instructions": {},
+        "model": "fixture-model",
+        "multi_agent_mode": {},
+        "orchestrator_skills": {
+          "includeInstructions": true,
+          "enabled": false
+        },
+        "permissions": {
+          "instructions": "[removed]",
+          "approved_command_prefixes": []
+        },
+        "persistent_mode": {},
+        "personality": {
+          "model": "fixture-model",
+          "personality": "[removed]"
+        },
+        "plugins_instructions": true,
+        "realtime": {
+          "active": false
+        },
+        "skills": {
+          "includeInstructions": true
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 5,
+    "type": "turn_context",
+    "payload": {
+      "turn_id": "fixture-id-4",
+      "root_turn_id": "fixture-id-4",
+      "cwd": "/projects/example",
+      "workspace_roots": ["[removed]"],
+      "current_date": "[removed]",
+      "timezone": "[removed]",
+      "approval_policy": "[removed]",
+      "approvals_reviewer": "[removed]",
+      "sandbox_policy": {
+        "type": "fixture-other",
+        "network_access": false,
+        "exclude_tmpdir_env_var": false,
+        "exclude_slash_tmp": false
+      },
+      "permission_profile": {
+        "type": "fixture-other",
+        "file_system": {
+          "type": "fixture-other",
+          "entries": [
+            {
+              "path": {
+                "type": "fixture-other",
+                "value": {
+                  "kind": "[removed]"
+                }
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "value": {
+                  "kind": "[removed]"
+                }
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "value": {
+                  "kind": "[removed]"
+                }
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]",
+              "missing_path_behavior": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]",
+              "missing_path_behavior": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]",
+              "missing_path_behavior": "[removed]"
+            }
+          ]
+        },
+        "network": "[removed]"
+      },
+      "file_system_sandbox_policy": {
+        "kind": "[removed]",
+        "entries": [
+          {
+            "path": {
+              "type": "fixture-other",
+              "value": {
+                "kind": "[removed]"
+              }
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "value": {
+                "kind": "[removed]"
+              }
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "value": {
+                "kind": "[removed]"
+              }
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]",
+            "missing_path_behavior": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]",
+            "missing_path_behavior": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]",
+            "missing_path_behavior": "[removed]"
+          }
+        ]
+      },
+      "model": "fixture-model",
+      "comp_hash": "[removed]",
+      "personality": "[removed]",
+      "collaboration_mode": {
+        "mode": "[removed]",
+        "settings": {
+          "model": "fixture-model",
+          "reasoning_effort": null,
+          "developer_instructions": null
+        }
+      },
+      "multi_agent_version": "[removed]",
+      "realtime_active": false,
+      "summary": "[removed]"
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 6,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-8",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4",
+        "create_time": 1788610967.5248394,
+        "content_item_kinds": ["[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 7,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-4",
+      "item": {
+        "type": "fixture-other",
+        "id": "fixture-id-9",
+        "content": [
+          {
+            "type": "text",
+            "text": "Fixture text",
+            "text_elements": []
+          }
+        ]
+      },
+      "started_at_ms": 1788610967526,
+      "completed_at_ms": 1788610967526
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 8,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-4",
+      "item": {
+        "type": "fixture-other",
+        "id": "fixture-id-10",
+        "summary_text": [],
+        "raw_content": []
+      },
+      "started_at_ms": 1788610969162,
+      "completed_at_ms": 1788610969547
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 9,
+    "type": "response_item",
+    "payload": {
+      "type": "reasoning",
+      "id": "fixture-id-10",
+      "summary": [],
+      "encrypted_content": "[removed]",
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4"
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 10,
+    "type": "response_item",
+    "payload": {
+      "type": "custom_tool_call",
+      "id": "fixture-id-11",
+      "status": "[removed]",
+      "call_id": "fixture-id-12",
+      "name": "fixture-other",
+      "input": "Fixture text",
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4",
+        "create_time": 1788610968.653742
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 11,
+    "type": "token_usage_record",
+    "payload": {
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-4",
+      "session_id": "fixture-id-1",
+      "root_turn_id": "fixture-id-4",
+      "response_id": "fixture-id-13",
+      "usage": {
+        "input_tokens": 13618,
+        "cached_input_tokens": 9984,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 106,
+        "reasoning_output_tokens": 10,
+        "total_tokens": 13724
+      },
+      "turn_token_usage": {
+        "input_tokens": 13618,
+        "cached_input_tokens": 9984,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 106,
+        "reasoning_output_tokens": 10,
+        "total_tokens": 13724
+      },
+      "thread_token_usage": {
+        "input_tokens": 13618,
+        "cached_input_tokens": 9984,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 106,
+        "reasoning_output_tokens": 10,
+        "total_tokens": 13724
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 12,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-4",
+      "item": {
+        "type": "fixture-other",
+        "id": "fixture-id-14",
+        "process_id": "fixture-id-15",
+        "command": ["[removed]", "[removed]", "[removed]"],
+        "cwd": "/projects/example",
+        "parsed_cmd": [
+          {
+            "type": "fixture-other",
+            "cmd": "[removed]"
+          }
+        ],
+        "source": "[removed]",
+        "status": "[removed]",
+        "stdout": "[removed]",
+        "stderr": "[removed]",
+        "aggregated_output": "[removed]",
+        "exit_code": 0,
+        "duration": {
+          "secs": 0,
+          "nanos": 22784
+        },
+        "formatted_output": "[removed]"
+      },
+      "started_at_ms": 1788610971304,
+      "completed_at_ms": 1788610971304
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 13,
+    "type": "response_item",
+    "payload": {
+      "type": "custom_tool_call_output",
+      "id": "fixture-id-16",
+      "call_id": "fixture-id-12",
+      "output": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        },
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4",
+        "create_time": 1788610971.3174973
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 14,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "info": {
+        "total_token_usage": {
+          "input_tokens": 13618,
+          "cached_input_tokens": 9984,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 106,
+          "reasoning_output_tokens": 10,
+          "total_tokens": 13724
+        },
+        "last_token_usage": {
+          "input_tokens": 13618,
+          "cached_input_tokens": 9984,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 106,
+          "reasoning_output_tokens": 10,
+          "total_tokens": 13724
+        },
+        "model_context_window": 258400
+      },
+      "rate_limits": {
+        "limit_id": "fixture-id-17",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 15.0,
+          "window_minutes": 300,
+          "resets_at": 1788626939
+        },
+        "secondary": {
+          "used_percent": 48.0,
+          "window_minutes": 10080,
+          "resets_at": 1788762448
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "[removed]"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "[removed]",
+        "rate_limit_reached_type": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 15,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-4",
+      "item": {
+        "type": "fixture-other",
+        "id": "fixture-id-18",
+        "content": [
+          {
+            "type": "fixture-other",
+            "text": "Fixture text"
+          }
+        ],
+        "phase": "[removed]"
+      },
+      "started_at_ms": 1788610974406,
+      "completed_at_ms": 1788610974530
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 16,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-18",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Fixture text"
+        }
+      ],
+      "phase": "[removed]",
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-4",
+        "create_time": 1788610973.953133,
+        "content_item_kinds": ["[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 17,
+    "type": "token_usage_record",
+    "payload": {
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-4",
+      "session_id": "fixture-id-1",
+      "root_turn_id": "fixture-id-4",
+      "response_id": "fixture-id-19",
+      "usage": {
+        "input_tokens": 13751,
+        "cached_input_tokens": 13056,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 13756
+      },
+      "turn_token_usage": {
+        "input_tokens": 27369,
+        "cached_input_tokens": 23040,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 111,
+        "reasoning_output_tokens": 10,
+        "total_tokens": 27480
+      },
+      "thread_token_usage": {
+        "input_tokens": 27369,
+        "cached_input_tokens": 23040,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 111,
+        "reasoning_output_tokens": 10,
+        "total_tokens": 27480
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 18,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "info": {
+        "total_token_usage": {
+          "input_tokens": 27369,
+          "cached_input_tokens": 23040,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 111,
+          "reasoning_output_tokens": 10,
+          "total_tokens": 27480
+        },
+        "last_token_usage": {
+          "input_tokens": 13751,
+          "cached_input_tokens": 13056,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 5,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 13756
+        },
+        "model_context_window": 258400
+      },
+      "rate_limits": {
+        "limit_id": "fixture-id-17",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 15.0,
+          "window_minutes": 300,
+          "resets_at": 1788626939
+        },
+        "secondary": {
+          "used_percent": 48.0,
+          "window_minutes": 10080,
+          "resets_at": 1788762448
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "[removed]"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "[removed]",
+        "rate_limit_reached_type": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 19,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "turn_id": "fixture-id-4",
+      "last_agent_message": "[removed]",
+      "started_at": 1788610964,
+      "completed_at": 1788610974,
+      "duration_ms": 9639,
+      "time_to_first_token_ms": 4627
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 20,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "thread_settings": {
+        "model": "fixture-model",
+        "model_provider_id": "fixture-id-2",
+        "approval_policy": "[removed]",
+        "approvals_reviewer": "[removed]",
+        "permission_profile": {
+          "type": "fixture-other",
+          "file_system": {
+            "type": "fixture-other",
+            "entries": [
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "value": {
+                    "kind": "[removed]"
+                  }
+                },
+                "access": "[removed]"
+              },
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "path": "[removed]"
+                },
+                "access": "[removed]"
+              },
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "value": {
+                    "kind": "[removed]"
+                  }
+                },
+                "access": "[removed]"
+              },
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "value": {
+                    "kind": "[removed]"
+                  }
+                },
+                "access": "[removed]"
+              },
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "path": "[removed]"
+                },
+                "access": "[removed]",
+                "missing_path_behavior": "[removed]"
+              },
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "path": "[removed]"
+                },
+                "access": "[removed]",
+                "missing_path_behavior": "[removed]"
+              },
+              {
+                "path": {
+                  "type": "fixture-other",
+                  "path": "[removed]"
+                },
+                "access": "[removed]",
+                "missing_path_behavior": "[removed]"
+              }
+            ]
+          },
+          "network": "[removed]"
+        },
+        "active_permission_profile": {
+          "id": "fixture-id-20"
+        },
+        "cwd": "/projects/example",
+        "personality": "[removed]",
+        "collaboration_mode": {
+          "mode": "[removed]",
+          "settings": {
+            "model": "fixture-model",
+            "reasoning_effort": null,
+            "developer_instructions": null
+          }
+        }
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 21,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "turn_id": "fixture-id-21",
+      "started_at": 1788610986,
+      "model_context_window": 258400,
+      "collaboration_mode_kind": "[removed]"
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 22,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-22",
+      "role": "developer",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-21",
+        "create_time": 1788610989.6177192,
+        "content_item_kinds": ["[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 23,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-23",
+      "role": "developer",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-21",
+        "create_time": 1788610989.6177208,
+        "content_item_kinds": ["[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 24,
+    "type": "world_state",
+    "payload": {
+      "full": false,
+      "state": {
+        "apps_instructions": false,
+        "collaboration_mode": {
+          "model": "fixture-model",
+          "instructions": "[removed]"
+        },
+        "model": "fixture-model",
+        "personality": {
+          "model": "fixture-model"
+        },
+        "plugins_instructions": false
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 25,
+    "type": "turn_context",
+    "payload": {
+      "turn_id": "fixture-id-21",
+      "root_turn_id": "fixture-id-21",
+      "cwd": "/projects/example",
+      "workspace_roots": ["[removed]"],
+      "current_date": "[removed]",
+      "timezone": "[removed]",
+      "approval_policy": "[removed]",
+      "approvals_reviewer": "[removed]",
+      "sandbox_policy": {
+        "type": "fixture-other",
+        "network_access": false,
+        "exclude_tmpdir_env_var": false,
+        "exclude_slash_tmp": false
+      },
+      "permission_profile": {
+        "type": "fixture-other",
+        "file_system": {
+          "type": "fixture-other",
+          "entries": [
+            {
+              "path": {
+                "type": "fixture-other",
+                "value": {
+                  "kind": "[removed]"
+                }
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "value": {
+                  "kind": "[removed]"
+                }
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "value": {
+                  "kind": "[removed]"
+                }
+              },
+              "access": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]",
+              "missing_path_behavior": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]",
+              "missing_path_behavior": "[removed]"
+            },
+            {
+              "path": {
+                "type": "fixture-other",
+                "path": "[removed]"
+              },
+              "access": "[removed]",
+              "missing_path_behavior": "[removed]"
+            }
+          ]
+        },
+        "network": "[removed]"
+      },
+      "active_permission_profile": {
+        "id": "fixture-id-20"
+      },
+      "file_system_sandbox_policy": {
+        "kind": "[removed]",
+        "entries": [
+          {
+            "path": {
+              "type": "fixture-other",
+              "value": {
+                "kind": "[removed]"
+              }
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "value": {
+                "kind": "[removed]"
+              }
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "value": {
+                "kind": "[removed]"
+              }
+            },
+            "access": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]",
+            "missing_path_behavior": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]",
+            "missing_path_behavior": "[removed]"
+          },
+          {
+            "path": {
+              "type": "fixture-other",
+              "path": "[removed]"
+            },
+            "access": "[removed]",
+            "missing_path_behavior": "[removed]"
+          }
+        ]
+      },
+      "model": "fixture-model",
+      "comp_hash": "[removed]",
+      "personality": "[removed]",
+      "collaboration_mode": {
+        "mode": "[removed]",
+        "settings": {
+          "model": "fixture-model",
+          "reasoning_effort": null,
+          "developer_instructions": null
+        }
+      },
+      "multi_agent_version": "[removed]",
+      "realtime_active": false,
+      "summary": "[removed]"
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 26,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-24",
+      "role": "user",
+      "content": [
+        {
+          "type": "input_text",
+          "text": "Fixture text"
+        }
+      ],
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-21",
+        "create_time": 1788610989.6828642,
+        "content_item_kinds": ["[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 27,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-21",
+      "item": {
+        "type": "fixture-other",
+        "id": "fixture-id-25",
+        "content": [
+          {
+            "type": "text",
+            "text": "Fixture text",
+            "text_elements": []
+          }
+        ]
+      },
+      "started_at_ms": 1788610989683,
+      "completed_at_ms": 1788610989684
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 28,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-21",
+      "item": {
+        "type": "fixture-other",
+        "id": "fixture-id-26",
+        "content": [
+          {
+            "type": "fixture-other",
+            "text": "Fixture text"
+          }
+        ],
+        "phase": "[removed]"
+      },
+      "started_at_ms": 1788610993984,
+      "completed_at_ms": 1788610994076
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 29,
+    "type": "response_item",
+    "payload": {
+      "type": "message",
+      "id": "fixture-id-26",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "Fixture text"
+        }
+      ],
+      "phase": "[removed]",
+      "internal_chat_message_metadata_passthrough": {
+        "turn_id": "fixture-id-21",
+        "create_time": 1788610990.721089,
+        "content_item_kinds": ["[removed]"]
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 30,
+    "type": "token_usage_record",
+    "payload": {
+      "thread_id": "fixture-id-1",
+      "turn_id": "fixture-id-21",
+      "session_id": "fixture-id-1",
+      "root_turn_id": "fixture-id-21",
+      "response_id": "fixture-id-27",
+      "usage": {
+        "input_tokens": 18553,
+        "cached_input_tokens": 10496,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 6,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 18559
+      },
+      "turn_token_usage": {
+        "input_tokens": 18553,
+        "cached_input_tokens": 10496,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 6,
+        "reasoning_output_tokens": 0,
+        "total_tokens": 18559
+      },
+      "thread_token_usage": {
+        "input_tokens": 45922,
+        "cached_input_tokens": 33536,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 117,
+        "reasoning_output_tokens": 10,
+        "total_tokens": 46039
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 31,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "info": {
+        "total_token_usage": {
+          "input_tokens": 18553,
+          "cached_input_tokens": 10496,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 18559
+        },
+        "last_token_usage": {
+          "input_tokens": 18553,
+          "cached_input_tokens": 10496,
+          "cache_write_input_tokens": 0,
+          "output_tokens": 6,
+          "reasoning_output_tokens": 0,
+          "total_tokens": 18559
+        },
+        "model_context_window": 258400
+      },
+      "rate_limits": {
+        "limit_id": "fixture-id-17",
+        "limit_name": null,
+        "primary": {
+          "used_percent": 15.0,
+          "window_minutes": 300,
+          "resets_at": 1788626939
+        },
+        "secondary": {
+          "used_percent": 48.0,
+          "window_minutes": 10080,
+          "resets_at": 1788762448
+        },
+        "credits": {
+          "has_credits": false,
+          "unlimited": false,
+          "balance": "[removed]"
+        },
+        "individual_limit": null,
+        "spend_control_reached": null,
+        "plan_type": "[removed]",
+        "rate_limit_reached_type": null
+      }
+    }
+  },
+  {
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "ordinal": 32,
+    "type": "event_msg",
+    "payload": {
+      "type": "fixture-other",
+      "turn_id": "fixture-id-21",
+      "last_agent_message": "[removed]",
+      "started_at": 1788610986,
+      "completed_at": 1788610994,
+      "duration_ms": 7714,
+      "time_to_first_token_ms": 7577
+    }
+  }
+]

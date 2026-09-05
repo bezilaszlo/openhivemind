@@ -26,7 +26,13 @@ export class ApiError extends Error {
 export function createApi(base: string, token?: string, transport: typeof fetch = fetch) {
   return async <P extends TSchema, B extends TSchema, R extends TSchema, Q extends TSchema>(
     definition: Route<P, B, R, Q>,
-    options: { params?: Static<P>; body?: Static<B>; query?: Static<Q>; signal?: AbortSignal } = {},
+    options: {
+      params?: Static<P>;
+      body?: Static<B>;
+      query?: Static<Q>;
+      headers?: Record<string, string>;
+      signal?: AbortSignal;
+    } = {},
   ): Promise<Static<R>> => {
     const path = definition.path.replace(/:([a-zA-Z]+)/g, (_, name: string) =>
       encodeURIComponent(
@@ -40,6 +46,7 @@ export function createApi(base: string, token?: string, transport: typeof fetch 
       method: definition.method,
       credentials: "same-origin",
       headers: {
+        ...options.headers,
         "content-type": "application/json",
         "x-openhivemind-protocol": String(PROTOCOL_VERSION),
         ...(token ? { authorization: `Bearer ${token}` } : {}),

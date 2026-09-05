@@ -1,0 +1,56 @@
+{
+  "messages": [
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "fixture-id-30:text",
+      "branch": "main"
+    },
+    {
+      "kind": "reply",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "fixture-id-45:0",
+      "branch": "main",
+      "model": "fixture-model",
+      "usage": {
+        "input": 10,
+        "output": 41,
+        "cache_read": 13615,
+        "cache_creation": 8836
+      }
+    },
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "fixture-id-48:text",
+      "branch": "main",
+      "model": "fixture-model"
+    },
+    {
+      "kind": "reply",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "fixture-id-53:0",
+      "branch": "main",
+      "model": "fixture-model",
+      "usage": {
+        "input": 10,
+        "output": 27,
+        "cache_read": 22451,
+        "cache_creation": 83
+      }
+    }
+  ],
+  "meta": {
+    "cwd": "/projects/example",
+    "version": "2.1.259",
+    "branch": "main"
+  },
+  "state": {
+    "model": "fixture-model",
+    "seenUsage": ["fixture-id-42", "fixture-id-50"]
+  }
+}

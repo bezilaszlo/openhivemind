@@ -1,0 +1,289 @@
+[
+  {
+    "id": "fixture-id-54",
+    "created_at": 1788610968144,
+    "info": {
+      "role": "user",
+      "time": {
+        "created": 1788610968144
+      },
+      "agent": "[removed]",
+      "model": {
+        "providerID": "fixture-id-55",
+        "modelID": "fixture-model"
+      },
+      "summary": {
+        "diffs": []
+      }
+    },
+    "parts": [
+      {
+        "type": "text",
+        "text": "Fixture text",
+        "id": "fixture-id-56"
+      }
+    ]
+  },
+  {
+    "id": "fixture-id-57",
+    "created_at": 1788610969115,
+    "info": {
+      "parentID": "fixture-id-54",
+      "role": "assistant",
+      "mode": "[removed]",
+      "agent": "[removed]",
+      "path": {
+        "cwd": "/projects/example",
+        "root": "[removed]"
+      },
+      "cost": 0,
+      "tokens": {
+        "total": 10065,
+        "input": 10038,
+        "output": 3,
+        "reasoning": 24,
+        "cache": {
+          "write": 0,
+          "read": 0
+        }
+      },
+      "modelID": "fixture-model",
+      "providerID": "fixture-id-55",
+      "time": {
+        "created": 1788610969115,
+        "completed": 1788610975543
+      },
+      "finish": "[removed]"
+    },
+    "parts": [
+      {
+        "snapshot": "[removed]",
+        "type": "step-start",
+        "id": "fixture-id-58"
+      },
+      {
+        "type": "reasoning",
+        "text": "Fixture text",
+        "time": {
+          "start": 1788610974941,
+          "end": 1788610975411
+        },
+        "id": "fixture-id-59"
+      },
+      {
+        "type": "text",
+        "text": "Fixture text",
+        "time": {
+          "start": 1788610975414,
+          "end": 1788610975462
+        },
+        "id": "fixture-id-60"
+      },
+      {
+        "reason": "[removed]",
+        "snapshot": "[removed]",
+        "type": "step-finish",
+        "tokens": {
+          "total": 10065,
+          "input": 10038,
+          "output": 3,
+          "reasoning": 24,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "cost": 0,
+        "id": "fixture-id-61"
+      }
+    ]
+  },
+  {
+    "id": "fixture-id-62",
+    "created_at": 1788611031253,
+    "info": {
+      "role": "user",
+      "time": {
+        "created": 1788611031253
+      },
+      "agent": "[removed]",
+      "model": {
+        "providerID": "fixture-id-55",
+        "modelID": "fixture-model"
+      },
+      "summary": {
+        "diffs": []
+      }
+    },
+    "parts": [
+      {
+        "type": "text",
+        "text": "Fixture text",
+        "id": "fixture-id-63"
+      }
+    ]
+  },
+  {
+    "id": "fixture-id-64",
+    "created_at": 1788611032128,
+    "info": {
+      "parentID": "fixture-id-62",
+      "role": "assistant",
+      "mode": "[removed]",
+      "agent": "[removed]",
+      "path": {
+        "cwd": "/projects/example",
+        "root": "[removed]"
+      },
+      "cost": 0,
+      "tokens": {
+        "total": 10299,
+        "input": 7892,
+        "output": 130,
+        "reasoning": 101,
+        "cache": {
+          "write": 0,
+          "read": 2176
+        }
+      },
+      "modelID": "fixture-model",
+      "providerID": "fixture-id-55",
+      "time": {
+        "created": 1788611032128,
+        "completed": 1788611042198
+      },
+      "finish": "[removed]"
+    },
+    "parts": [
+      {
+        "snapshot": "[removed]",
+        "type": "step-start",
+        "id": "fixture-id-65"
+      },
+      {
+        "type": "reasoning",
+        "text": "Fixture text",
+        "time": {
+          "start": 1788611034431,
+          "end": 1788611041870
+        },
+        "id": "fixture-id-66"
+      },
+      {
+        "type": "tool",
+        "tool": "bash",
+        "callID": "fixture-id-67",
+        "state": {
+          "status": "[removed]",
+          "input": {
+            "workdir": "[removed]",
+            "command": "[removed]"
+          },
+          "output": "[removed]",
+          "metadata": {
+            "output": "[removed]",
+            "exit": 0,
+            "truncated": false
+          },
+          "title": "[removed]",
+          "time": {
+            "start": 1788611041893,
+            "end": 1788611042005
+          }
+        },
+        "id": "fixture-id-68"
+      },
+      {
+        "reason": "[removed]",
+        "snapshot": "[removed]",
+        "type": "step-finish",
+        "tokens": {
+          "total": 10299,
+          "input": 7892,
+          "output": 130,
+          "reasoning": 101,
+          "cache": {
+            "write": 0,
+            "read": 2176
+          }
+        },
+        "cost": 0,
+        "id": "fixture-id-69"
+      }
+    ]
+  },
+  {
+    "id": "fixture-id-70",
+    "created_at": 1788611042209,
+    "info": {
+      "parentID": "fixture-id-62",
+      "role": "assistant",
+      "mode": "[removed]",
+      "agent": "[removed]",
+      "path": {
+        "cwd": "/projects/example",
+        "root": "[removed]"
+      },
+      "cost": 0,
+      "tokens": {
+        "total": 10342,
+        "input": 1614,
+        "output": 7,
+        "reasoning": 17,
+        "cache": {
+          "write": 0,
+          "read": 8704
+        }
+      },
+      "modelID": "fixture-model",
+      "providerID": "fixture-id-55",
+      "time": {
+        "created": 1788611042209,
+        "completed": 1788611043990
+      },
+      "finish": "[removed]"
+    },
+    "parts": [
+      {
+        "snapshot": "[removed]",
+        "type": "step-start",
+        "id": "fixture-id-71"
+      },
+      {
+        "type": "reasoning",
+        "text": "Fixture text",
+        "time": {
+          "start": 1788611043245,
+          "end": 1788611043590
+        },
+        "id": "fixture-id-72"
+      },
+      {
+        "type": "text",
+        "text": "Fixture text",
+        "time": {
+          "start": 1788611043595,
+          "end": 1788611043890
+        },
+        "id": "fixture-id-73"
+      },
+      {
+        "reason": "[removed]",
+        "snapshot": "[removed]",
+        "type": "step-finish",
+        "tokens": {
+          "total": 10342,
+          "input": 1614,
+          "output": 7,
+          "reasoning": 17,
+          "cache": {
+            "write": 0,
+            "read": 8704
+          }
+        },
+        "cost": 0,
+        "id": "fixture-id-74"
+      }
+    ]
+  }
+]

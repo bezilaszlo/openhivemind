@@ -348,6 +348,7 @@ response with the compiled TypeBox check and fails loudly on mismatch. No bare
 
 ## Fixtures
 
-`fixtures/<harness>/` holds one synthetic transcript per harness covering every
-line and block type in the tables above, with placeholder text, plus the golden
-normalised output. Real sessions are never committed.
+`fixtures/<harness>/` holds structurally preserved discovery captures with every
+free-form string replaced, plus golden normalised output. Raw real sessions are
+never committed. Synthetic parser regressions supplement these captures for
+edge cases; see `fixtures/README.md` for provenance and coverage gaps.

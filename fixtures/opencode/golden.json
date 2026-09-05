@@ -1,0 +1,63 @@
+{
+  "messages": [
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T12:22:48.144Z",
+      "source_event_id": "fixture-id-54:fixture-id-56",
+      "model": "fixture-model"
+    },
+    {
+      "kind": "reply",
+      "text": "Fixture text",
+      "ts": "2026-09-05T12:22:49.115Z",
+      "source_event_id": "fixture-id-57:fixture-id-60",
+      "model": "fixture-model",
+      "usage": {
+        "input": 10038,
+        "output": 3,
+        "cache_read": 0,
+        "cache_creation": 0
+      }
+    },
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T12:23:51.253Z",
+      "source_event_id": "fixture-id-62:fixture-id-63",
+      "model": "fixture-model"
+    },
+    {
+      "kind": "tool_call",
+      "text": "bash {\"workdir\":\"[removed]\",\"command\":\"[removed]\"}",
+      "ts": "2026-09-05T12:23:52.128Z",
+      "source_event_id": "fixture-id-64:fixture-id-68",
+      "model": "fixture-model",
+      "tool_name": "bash",
+      "usage": {
+        "input": 7892,
+        "output": 130,
+        "cache_read": 2176,
+        "cache_creation": 0
+      }
+    },
+    {
+      "kind": "reply",
+      "text": "Fixture text",
+      "ts": "2026-09-05T12:24:02.209Z",
+      "source_event_id": "fixture-id-70:fixture-id-73",
+      "model": "fixture-model",
+      "usage": {
+        "input": 1614,
+        "output": 7,
+        "cache_read": 8704,
+        "cache_creation": 0
+      }
+    }
+  ],
+  "meta": {},
+  "state": {
+    "model": "fixture-model",
+    "seenUsage": []
+  }
+}

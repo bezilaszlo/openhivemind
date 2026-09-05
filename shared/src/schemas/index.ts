@@ -17,6 +17,7 @@ export const Usage = Type.Object({
   cache_read: Type.Integer({ minimum: 0 }),
   cache_creation: Type.Integer({ minimum: 0 }),
 });
+export type Usage = Static<typeof Usage>;
 export const Message = Type.Object({
   seq: Type.Integer({ minimum: 1 }),
   rev: Type.Integer({ minimum: 1 }),
@@ -316,6 +317,43 @@ export const routes = {
     empty,
     empty,
     Type.Object({ providers: Type.Array(string()) }),
+    empty,
+  ),
+};
+
+const AuthUser = Type.Object({ id: Id, name: Type.String(), email: Type.String() });
+const AuthResult = Type.Object({ user: AuthUser, token: Type.Union([Type.String(), Type.Null()]) });
+export const authRoutes = {
+  login: route(
+    "POST",
+    "/api/auth/sign-in/email",
+    empty,
+    Type.Object({ email: Type.String(), password: Type.String() }),
+    AuthResult,
+    empty,
+  ),
+  register: route(
+    "POST",
+    "/api/auth/sign-up/email",
+    empty,
+    Type.Object({ name: Type.String(), email: Type.String(), password: Type.String() }),
+    AuthResult,
+    empty,
+  ),
+  logout: route(
+    "POST",
+    "/api/auth/sign-out",
+    empty,
+    empty,
+    Type.Object({ success: Type.Boolean() }),
+    empty,
+  ),
+  oidc: route(
+    "POST",
+    "/api/auth/sign-in/social",
+    empty,
+    Type.Object({ provider: Type.String(), callbackURL: Type.String() }),
+    Type.Object({ url: Type.String(), redirect: Type.Boolean() }),
     empty,
   ),
 };

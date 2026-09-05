@@ -1,0 +1,79 @@
+{
+  "messages": [
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:3:0"
+    },
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:3:1"
+    },
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:6:0",
+      "model": "fixture-model"
+    },
+    {
+      "kind": "tool_call",
+      "text": "fixture-other Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:10:tool",
+      "model": "fixture-model",
+      "tool_name": "fixture-other",
+      "usage": {
+        "input": 3634,
+        "output": 106,
+        "cache_read": 9984,
+        "cache_creation": 0
+      }
+    },
+    {
+      "kind": "reply",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:16:0",
+      "model": "fixture-model",
+      "usage": {
+        "input": 695,
+        "output": 5,
+        "cache_read": 13056,
+        "cache_creation": 0
+      }
+    },
+    {
+      "kind": "prompt",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:26:0",
+      "model": "fixture-model"
+    },
+    {
+      "kind": "reply",
+      "text": "Fixture text",
+      "ts": "2026-09-05T10:00:00.000Z",
+      "source_event_id": "codex:29:0",
+      "model": "fixture-model",
+      "usage": {
+        "input": 8057,
+        "output": 6,
+        "cache_read": 10496,
+        "cache_creation": 0
+      }
+    }
+  ],
+  "meta": {
+    "cwd": "/projects/example",
+    "version": "0.153.4",
+    "branch": "main"
+  },
+  "state": {
+    "model": "fixture-model",
+    "seenUsage": ["fixture-id-13", "fixture-id-19", "fixture-id-27"]
+  }
+}

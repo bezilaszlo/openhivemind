@@ -1,0 +1,1184 @@
+[
+  {
+    "type": "fixture-other",
+    "operation": "[removed]",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "sessionId": "fixture-id-28",
+    "content": "Fixture text"
+  },
+  {
+    "type": "fixture-other",
+    "operation": "[removed]",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "parentUuid": null,
+    "isSidechain": false,
+    "promptId": "fixture-id-29",
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": "Fixture text"
+    },
+    "uuid": "fixture-id-30",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "permissionMode": "[removed]",
+    "promptSource": "[removed]",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-30",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "snapshot": {
+        "workingDirectory": "[removed]",
+        "isWorktree": false,
+        "isGitRepo": true,
+        "additionalWorkingDirectories": [],
+        "platform": "[removed]",
+        "shell": "[removed]",
+        "osVersion": "[removed]"
+      }
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-31",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-31",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "identity": {
+        "modelId": "fixture-id-32",
+        "marketingName": "[removed]",
+        "knowledgeCutoff": "[removed]"
+      },
+      "text": "Fixture text"
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-33",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-33",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "addedNames": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ],
+      "addedLines": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ],
+      "removedNames": [],
+      "wireHiddenNames": [],
+      "readdedNames": [],
+      "pendingMcpServers": [],
+      "needsAuthMcpServers": ["[removed]"],
+      "failedMcpServers": []
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-34",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-34",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "addedTypes": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ],
+      "addedLines": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ],
+      "removedTypes": [],
+      "isInitial": true,
+      "showConcurrencyNote": true
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-35",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-35",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "content": "Fixture text",
+      "skillCount": 31,
+      "isInitial": true,
+      "names": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ]
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-36",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-36",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "text": "Fixture text"
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-37",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "type": "fixture-other",
+    "atis": "[removed]",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "parentUuid": "fixture-id-37",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "files": [
+        {
+          "path": "[removed]",
+          "type": "fixture-other",
+          "content": "Fixture text"
+        }
+      ]
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-38",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-38",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "context": {
+        "userEmail": "[removed]",
+        "gitStatus": "[removed]"
+      }
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-39",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-39",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "date": "[removed]"
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-40",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-40",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "systemPrompt": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ]
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-41",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "type": "fixture-other",
+    "lastPrompt": "[removed]",
+    "leafUuid": "fixture-id-41",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "type": "fixture-other",
+    "atis": "[removed]",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "parentUuid": "fixture-id-41",
+    "isSidechain": false,
+    "message": {
+      "model": "fixture-model",
+      "id": "fixture-id-42",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "[removed]",
+          "signature": "[removed]"
+        }
+      ],
+      "stop_reason": "[removed]",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 8836,
+        "cache_read_input_tokens": 13615,
+        "output_tokens": 41,
+        "output_tokens_details": {
+          "thinking_tokens": 34
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "[removed]",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 8836,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "[removed]",
+        "iterations": [
+          {
+            "input_tokens": 10,
+            "output_tokens": 41,
+            "cache_read_input_tokens": 13615,
+            "cache_creation_input_tokens": 8836,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 8836
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "[removed]"
+      },
+      "diagnostics": null
+    },
+    "apiBlockIndex": 0,
+    "requestId": "fixture-id-43",
+    "type": "assistant",
+    "uuid": "fixture-id-44",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-44",
+    "isSidechain": false,
+    "message": {
+      "model": "fixture-model",
+      "id": "fixture-id-42",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Fixture text"
+        }
+      ],
+      "stop_reason": "[removed]",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 8836,
+        "cache_read_input_tokens": 13615,
+        "output_tokens": 41,
+        "output_tokens_details": {
+          "thinking_tokens": 34
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "[removed]",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 8836,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "[removed]",
+        "iterations": [
+          {
+            "input_tokens": 10,
+            "output_tokens": 41,
+            "cache_read_input_tokens": 13615,
+            "cache_creation_input_tokens": 8836,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 8836
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "[removed]"
+      },
+      "diagnostics": null
+    },
+    "apiBlockIndex": 1,
+    "requestId": "fixture-id-43",
+    "type": "assistant",
+    "uuid": "fixture-id-45",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-45",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "systemPrompt": [
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]",
+        "[removed]"
+      ],
+      "tools": [
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "description": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "prompt": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "subagent_type": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "model": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "enum": ["[removed]", "[removed]", "[removed]", "[removed]"]
+                },
+                "run_in_background": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "isolation": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "enum": ["[removed]", "[removed]"]
+                }
+              },
+              "required": ["[removed]", "[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "Bash",
+          "description": "[removed]",
+          "schema": {
+            "name": "Bash",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "command": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "timeout": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "description": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "run_in_background": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "dangerouslyDisableSandbox": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                }
+              },
+              "required": ["[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "file_path": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "old_string": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "new_string": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "replace_all": {
+                  "description": "[removed]",
+                  "default": false,
+                  "type": "fixture-other"
+                }
+              },
+              "required": ["[removed]", "[removed]", "[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "channel": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "maxLength": 256
+                },
+                "q": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "maxLength": 256
+                }
+              },
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "file_path": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "offset": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "limit": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "pages": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                }
+              },
+              "required": ["[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "level": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "enum": ["[removed]", "[removed]", "[removed]", "[removed]", "[removed]"]
+                },
+                "findings": {
+                  "description": "[removed]",
+                  "maxItems": 32,
+                  "type": "fixture-other",
+                  "items": {
+                    "type": "fixture-other",
+                    "properties": {
+                      "file": {
+                        "description": "[removed]",
+                        "type": "fixture-other"
+                      },
+                      "line": {
+                        "description": "[removed]",
+                        "type": "fixture-other",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "summary": {
+                        "description": "[removed]",
+                        "type": "fixture-other"
+                      },
+                      "short_summary": {
+                        "description": "[removed]",
+                        "type": "fixture-other",
+                        "maxLength": 60
+                      },
+                      "failure_scenario": {
+                        "description": "[removed]",
+                        "type": "fixture-other"
+                      },
+                      "category": {
+                        "description": "[removed]",
+                        "type": "fixture-other",
+                        "maxLength": 40
+                      },
+                      "verdict": {
+                        "description": "[removed]",
+                        "type": "fixture-other",
+                        "enum": ["[removed]", "[removed]"]
+                      },
+                      "outcome": {
+                        "description": "[removed]",
+                        "type": "fixture-other",
+                        "enum": ["[removed]", "[removed]", "[removed]"]
+                      }
+                    },
+                    "required": ["[removed]", "[removed]", "[removed]"],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": ["[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "delaySeconds": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "reason": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "prompt": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "stop": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "noop": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                }
+              },
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "skill": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "args": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                }
+              },
+              "required": ["[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "query": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "max_results": {
+                  "description": "[removed]",
+                  "default": 5,
+                  "type": "fixture-other"
+                }
+              },
+              "required": ["[removed]", "[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "script": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "maxLength": 524288
+                },
+                "name": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "description": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "title": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "args": {
+                  "description": "[removed]"
+                },
+                "scriptPath": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "resumeFromRunId": {
+                  "description": "[removed]",
+                  "type": "fixture-other",
+                  "pattern": "[removed]"
+                }
+              },
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        },
+        {
+          "name": "fixture-other",
+          "description": "[removed]",
+          "schema": {
+            "name": "fixture-other",
+            "description": "[removed]",
+            "input_schema": {
+              "$schema": "[removed]",
+              "type": "fixture-other",
+              "properties": {
+                "file_path": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                },
+                "content": {
+                  "description": "[removed]",
+                  "type": "fixture-other"
+                }
+              },
+              "required": ["[removed]", "[removed]"],
+              "additionalProperties": false
+            },
+            "eager_input_streaming": true
+          }
+        }
+      ]
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-46",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "type": "fixture-other",
+    "lastPrompt": "[removed]",
+    "leafUuid": "fixture-id-46",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "type": "fixture-other",
+    "atis": "[removed]",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "type": "fixture-other",
+    "operation": "[removed]",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "sessionId": "fixture-id-28",
+    "content": "Fixture text"
+  },
+  {
+    "type": "fixture-other",
+    "operation": "[removed]",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "parentUuid": "fixture-id-46",
+    "isSidechain": false,
+    "promptId": "fixture-id-47",
+    "type": "user",
+    "message": {
+      "role": "user",
+      "content": "Fixture text"
+    },
+    "uuid": "fixture-id-48",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "permissionMode": "[removed]",
+    "promptSource": "[removed]",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-48",
+    "isSidechain": false,
+    "attachment": {
+      "type": "fixture-other",
+      "text": "Fixture text"
+    },
+    "type": "fixture-other",
+    "uuid": "fixture-id-49",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "rendered": [
+      {
+        "content": "Fixture text"
+      }
+    ],
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-49",
+    "isSidechain": false,
+    "message": {
+      "model": "fixture-model",
+      "id": "fixture-id-50",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "[removed]",
+          "signature": "[removed]"
+        }
+      ],
+      "stop_reason": "[removed]",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 83,
+        "cache_read_input_tokens": 22451,
+        "output_tokens": 27,
+        "output_tokens_details": {
+          "thinking_tokens": 20
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "[removed]",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 83,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "[removed]",
+        "iterations": [
+          {
+            "input_tokens": 10,
+            "output_tokens": 27,
+            "cache_read_input_tokens": 22451,
+            "cache_creation_input_tokens": 83,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 83
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "[removed]"
+      },
+      "diagnostics": null
+    },
+    "apiBlockIndex": 0,
+    "requestId": "fixture-id-51",
+    "type": "assistant",
+    "uuid": "fixture-id-52",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "parentUuid": "fixture-id-52",
+    "isSidechain": false,
+    "message": {
+      "model": "fixture-model",
+      "id": "fixture-id-50",
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Fixture text"
+        }
+      ],
+      "stop_reason": "[removed]",
+      "stop_sequence": null,
+      "stop_details": null,
+      "usage": {
+        "input_tokens": 10,
+        "cache_creation_input_tokens": 83,
+        "cache_read_input_tokens": 22451,
+        "output_tokens": 27,
+        "output_tokens_details": {
+          "thinking_tokens": 20
+        },
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "[removed]",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 83,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "[removed]",
+        "iterations": [
+          {
+            "input_tokens": 10,
+            "output_tokens": 27,
+            "cache_read_input_tokens": 22451,
+            "cache_creation_input_tokens": 83,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 83
+            },
+            "type": "message"
+          }
+        ],
+        "speed": "[removed]"
+      },
+      "diagnostics": null
+    },
+    "apiBlockIndex": 1,
+    "requestId": "fixture-id-51",
+    "type": "assistant",
+    "uuid": "fixture-id-53",
+    "timestamp": "2026-09-05T10:00:00.000Z",
+    "userType": "[removed]",
+    "entrypoint": "[removed]",
+    "cwd": "/projects/example",
+    "sessionId": "fixture-id-28",
+    "version": "2.1.259",
+    "gitBranch": "main"
+  },
+  {
+    "type": "fixture-other",
+    "lastPrompt": "[removed]",
+    "leafUuid": "fixture-id-53",
+    "sessionId": "fixture-id-28"
+  },
+  {
+    "type": "fixture-other",
+    "mode": "[removed]",
+    "sessionId": "fixture-id-28"
+  }
+]

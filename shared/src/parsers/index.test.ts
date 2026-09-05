@@ -70,3 +70,53 @@ it("reads opencode text and summaries without tool output", () => {
   expect(result.messages[0]?.usage?.cache_creation).toBe(6);
   expect(JSON.stringify(result)).not.toContain("private");
 });
+
+it("counts distinct provider responses in one Codex turn, including tool-only responses", () => {
+  const result = parseRecords("codex", [
+    {
+      type: "response_item",
+      ordinal: 1,
+      payload: { type: "function_call", name: "shell", arguments: "pwd" },
+    },
+    {
+      type: "token_usage_record",
+      ordinal: 2,
+      payload: {
+        turn_id: "turn",
+        response_id: "response-a",
+        usage: { input_tokens: 100, cached_input_tokens: 40, output_tokens: 10 },
+      },
+    },
+    {
+      type: "response_item",
+      ordinal: 3,
+      payload: {
+        type: "message",
+        role: "assistant",
+        content: [{ type: "output_text", text: "done" }],
+      },
+    },
+    {
+      type: "token_usage_record",
+      ordinal: 4,
+      payload: {
+        turn_id: "turn",
+        response_id: "response-b",
+        usage: { input_tokens: 110, cached_input_tokens: 90, output_tokens: 5 },
+      },
+    },
+    {
+      type: "token_usage_record",
+      ordinal: 5,
+      payload: {
+        turn_id: "turn",
+        response_id: "response-b",
+        usage: { input_tokens: 110, cached_input_tokens: 90, output_tokens: 5 },
+      },
+    },
+  ]);
+  expect(result.messages.map((message) => message.usage)).toEqual([
+    { input: 60, cache_read: 40, output: 10, cache_creation: 0 },
+    { input: 20, cache_read: 90, output: 5, cache_creation: 0 },
+  ]);
+});
