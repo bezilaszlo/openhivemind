@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, X } from "lucide-react";
 import { routes } from "@openhivemind/shared";
 import { api } from "../api";
+import { useChanges } from "../lib/changes";
 import { SessionRow } from "../components/session-row";
 import { Checkbox, EmptyState, ErrorState, Loading, PageHeader, page } from "../components/states";
 import { Button } from "../components/ui/button";
@@ -20,6 +21,7 @@ export function Sessions() {
     queryFn: () => api(routes.sessions, { query: { ...search, limit: 20 } }),
     retry: false,
   });
+  useChanges();
   const filtered = Boolean(search.remote || search.branch || search.mine);
   const go = (next: Query) => void navigate({ to: "/", search: { ...next, cursor: undefined } });
   const chips: { label: string; clear: Query }[] = [];

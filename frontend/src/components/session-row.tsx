@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight } from "lucide-react";
 import type { Session } from "@openhivemind/shared";
-import { number, time, totalTokens } from "../lib/format";
+import { number, totalTokens } from "../lib/format";
+import { SessionActivity } from "./activity";
 import { HarnessBadge, HarnessStripe, harnessProps } from "./harness-badge";
 export function SessionRow({ session }: { session: Session }) {
   const tokens = totalTokens(session.tokens);
@@ -27,7 +28,7 @@ export function SessionRow({ session }: { session: Session }) {
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
         <span className="font-mono">{session.remote}</span>
         <span>{session.branch || "No branch"}</span>
-        <span>{time(session.last_activity_at)}</span>
+        <SessionActivity session={session} />
         <span>
           {session.childCount
             ? `${session.childCount} agent${session.childCount === 1 ? "" : "s"}`

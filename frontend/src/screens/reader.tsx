@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Copy, PanelRight, Trash2 } from "lucide-react";
 import { routes } from "@openhivemind/shared";
 import { api } from "../api";
-import { number, time } from "../lib/format";
+import { number } from "../lib/format";
+import { useChanges } from "../lib/changes";
 import { AgentPanel } from "../components/agent-panel";
+import { SessionActivity } from "../components/activity";
 import { useOrg } from "../components/app-shell";
 import { HarnessBadge } from "../components/harness-badge";
 import { MessageView } from "../components/message-view";
@@ -36,6 +38,7 @@ export function Reader({ id }: { id: string }) {
   const org = useOrg();
   const client = useQueryClient();
   const [panel, setPanel] = useState(false);
+  const changes = useChanges(id);
   const query = useQuery({
     queryKey: ["session", id, state],
     queryFn: () =>
@@ -89,7 +92,7 @@ export function Reader({ id }: { id: string }) {
           <span className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <HarnessBadge source={session.source} />
             <span className="font-mono text-xs">{session.branch || "No branch"}</span>
-            <span>{time(session.last_activity_at)}</span>
+            <SessionActivity session={session} />
           </span>
         }
       >
@@ -151,6 +154,20 @@ export function Reader({ id }: { id: string }) {
               </h2>
               <p className="text-sm leading-relaxed text-muted">{session.summary}</p>
             </aside>
+          )}
+          {changes.changed && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-border bg-surface p-3 text-sm text-muted">
+              This session has new messages.
+              <Button
+                size="sm"
+                onClick={() => {
+                  changes.clear();
+                  void query.refetch();
+                }}
+              >
+                Load them
+              </Button>
+            </div>
           )}
           <div className="flex flex-wrap items-center justify-between gap-3 pb-4 text-xs text-muted">
             <span>

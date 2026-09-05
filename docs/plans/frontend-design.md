@@ -112,6 +112,17 @@ One link opens the session; other actions are separate controls. Empty
 install ("set up capture") differs from no matches ("adjust filters").
 Cursor pagination, never fetch everything.
 
+Activity is a property of a row, never of a person: no presence list, no
+member recency, no per-author activity anywhere in the product. A session
+counts as active while `completed` is false and its last activity is within
+ten minutes; the row then shows a small pulsing dot in the harness hue and
+"active 2 min ago", static under reduced motion. After ten minutes the dot
+goes and the row shows the plain relative time; a completed session reads
+"ended". Never "running" or "live": capture can stop without the session
+ever being marked complete. The list polls the changes feed with its stored
+cursor every 30 seconds while the tab is visible and invalidates only the
+sessions that feed names.
+
 **Reader.** Header: title, project, branch, harness, models, timestamps,
 copy link, delete for the owner. Current summary as a compact card; older
 summaries stay in place in the feed. Prompts get a subtle background, replies
@@ -120,8 +131,9 @@ the result exists. Agent tree as a side panel, collapsible when narrow;
 children open as their own pages, returning keeps the parent's position.
 Prompts-only and tool-calls-only toggles. A deep link loads the window around
 that seq; if a toggle hides it, say so and offer to clear. Loading older or
-newer windows keeps the reading position; new content shows a control, never
-scrolls the reader.
+newer windows keeps the reading position. The header carries the same
+activity indicator as the row, and the changes poll only enables a "new
+messages" control: nothing loads or scrolls until the reader asks.
 
 **Transcript rendering.** Captured text is untrusted. Markdown through the
 renderer above; snippets and highlights from escaped text or structured

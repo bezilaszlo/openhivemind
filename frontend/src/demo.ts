@@ -270,7 +270,8 @@ export const demoTransport: typeof fetch = async (input, init) => {
       })),
       cursor: null,
     };
-  } else if (path.endsWith("/usage")) {
+  } else if (path.endsWith("/changes")) value = { items: [], cursor: "demo-changes" };
+  else if (path.endsWith("/usage")) {
     const totals = { input: 0, output: 0, cache_read: 0, cache_creation: 0 };
     for (const session of demoSessions)
       for (const key of Object.keys(totals) as (keyof typeof totals)[])
