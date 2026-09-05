@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, expect, it } from "vitest";
-import { cleanup, render, screen, fireEvent } from "@testing-library/react";
-import { MessageView } from "./components";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { MessageView } from "./message-view";
 afterEach(cleanup);
 it("renders untrusted markdown without loading images or executing HTML", () => {
   const { container } = render(
     <MessageView
+      source="claude-code"
       message={{
         seq: 1,
         rev: 1,
@@ -25,6 +26,7 @@ it("renders untrusted markdown without loading images or executing HTML", () => 
 it("keeps tool input collapsed until requested and labels bounded excerpts", () => {
   const { container } = render(
     <MessageView
+      source="codex"
       message={{
         seq: 2,
         rev: 1,
@@ -41,4 +43,23 @@ it("keeps tool input collapsed until requested and labels bounded excerpts", () 
   fireEvent.click(container.querySelector("summary")!);
   expect(details.open).toBe(true);
   expect(screen.getByText("Continuation or bounded excerpt")).toBeTruthy();
+});
+it("tints a prompt with its own harness and leaves replies neutral", () => {
+  const { container, rerender } = render(
+    <MessageView
+      source="opencode"
+      message={{ seq: 3, rev: 1, kind: "prompt", text: "Why?", ts: "2026-09-05T10:00:00Z" }}
+    />,
+  );
+  const prompt = container.querySelector("article")!;
+  expect(prompt.dataset.harness).toBe("opencode");
+  expect(prompt.className).toContain("bg-harness/8");
+  rerender(
+    <MessageView
+      source="opencode"
+      message={{ seq: 4, rev: 1, kind: "reply", text: "Because.", ts: "2026-09-05T10:00:00Z" }}
+    />,
+  );
+  const reply = container.querySelector("article")!;
+  expect(reply.className).not.toContain("bg-harness");
 });

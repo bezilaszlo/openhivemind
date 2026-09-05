@@ -101,6 +101,26 @@ export const demoSessions: Session[] = scenarios.map(
         : null,
   }),
 );
+const child = (index: number, title: string, source: Session["source"]): Session => ({
+  ...demoSessions[0]!,
+  id: `demo-agent-${index}`,
+  external_id: `fixture-agent-${index}`,
+  source,
+  title,
+  spawn_depth: 1,
+  parent_session_id: "demo-session-1",
+  childCount: 0,
+  agents: [],
+  models: [source === "codex" ? "gpt-5.4" : "claude-sonnet-4-6"],
+  summary: null,
+  lastPrompt: title,
+  lastReply: "Reported back to the parent session.",
+});
+demoSessions.push(
+  child(1, "Search the worker for the acknowledgement path", "claude-code"),
+  child(2, "Review the idempotency key migration", "codex"),
+);
+demoSessions[0]!.childCount = 2;
 export const demoMessages = (session: Session): Message[] => [
   { seq: 1, rev: 1, kind: "prompt", text: session.lastPrompt!, ts: session.started_at },
   {
@@ -189,7 +209,10 @@ export const demoTransport: typeof fetch = async (input, init) => {
           session.branch.includes(url.searchParams.get("branch")!)) &&
         (url.searchParams.get("mine") !== "true" || session.owner_user_id === "demo-user"),
     );
-    if (url.searchParams.has("parent")) items = [];
+    const parent = url.searchParams.get("parent");
+    items = parent
+      ? demoSessions.filter((session) => session.parent_session_id === parent)
+      : items.filter((session) => session.parent_session_id === null);
     value = { items, cursor: null };
   } else if (path.includes("/sessions/")) {
     const id = decodeURIComponent(path.split("/").at(-1)!);
@@ -230,6 +253,11 @@ export const demoTransport: typeof fetch = async (input, init) => {
       } catch {
         return new Response(JSON.stringify({ detail: "Invalid regex pattern" }), { status: 400 });
       }
+      if (!/[a-zA-Z0-9]{3}/.test(String(body.query)))
+        return new Response(
+          JSON.stringify({ detail: "Search timed out; narrow project or time filters" }),
+          { status: 408 },
+        );
     }
     value = {
       items: items.map((session) => ({

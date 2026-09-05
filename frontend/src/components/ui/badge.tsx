@@ -7,7 +7,7 @@ export const badgeVariants = cva(
     variants: {
       variant: {
         outline: "border-border text-muted",
-        harness: "border-harness/35 bg-harness/10 text-harness",
+        harness: "border-harness/35 bg-harness/8 text-harness",
         accent: "border-accent/35 bg-accent/10 text-accent-ink",
       },
     },
