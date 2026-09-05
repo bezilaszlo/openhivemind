@@ -89,7 +89,7 @@ Auth schema (done 2026-09-05, see Gate 2).
 
 - pnpm workspace: `backend/`, `frontend/`, `client/`, `shared/`,
   `fixtures/`. Root `compose.yml` (DoD is `docker compose up` at the root) with
-  a persistent DB volume; `deploy/` holds the Dockerfile and extra overlays.
+  a persistent DB volume; `Dockerfile` at the root.
 - Node LTS pinned in `.nvmrc` and `engines`; `packageManager` pins pnpm. Client
   `engines` matches that LTS.
 - Strict `tsconfig.base.json` (`noUncheckedIndexedAccess`), oxlint + oxfmt,
@@ -126,7 +126,16 @@ Auth schema (done 2026-09-05, see Gate 2).
 
 Exit: every schema below exists as TypeBox in `shared/schemas`, the server
 serves OpenAPI derived from them without a database, frontend and CLI compile
-against them, and the contract tests pass against stub handlers.
+against them, and the contract tests pass against stub handlers. Better Auth
+is proven before anything is built on it: integration tests green, through
+the Fastify bridge, for local register-by-invite, OIDC login against a local
+mock issuer, first-user org bootstrap and PAT mint. If they cannot be made to
+pass on the pinned version, ADR 0003 caveat 10 applies before Gate 3.
+
+Client wrapper: one function taking a route definition from `shared/schemas`
+(method, path, params, request and response schemas). It validates the
+response with the compiled TypeBox check and fails loudly on mismatch. No bare
+`fetch<T>()` cast anywhere in frontend or CLI.
 
 Shared schemas are the source the server's route definitions import; they are
 never a second, hand-maintained contract.
@@ -239,7 +248,17 @@ Every route documents request, response, defaults and hard caps.
 - Tokens: `POST/GET/DELETE /me/tokens`.
 - Auth: `GET /auth/providers`, local login/logout/register-by-invite/password
   reset, OIDC start/callback. Rate limits on all credential endpoints.
-- `GET /config`: enabled providers, app URL, feature flags.
+- `GET /config`: enabled providers, app URL, feature flags, `protocol`
+  (current and minimum accepted version).
+
+Compatibility: every ingest chunk and every CLI request carries
+`protocolVersion` (integer, starts at 1). The server accepts the current and
+the previous version. Unknown fields are ignored on both sides; missing
+required fields are 400. A too-old client gets 426 with the minimum version;
+the uploader stops, keeps the spool, and `doctor` reports "upgrade client".
+A client newer than the server degrades to the server's version when the
+server says so in `/config`, otherwise reports "upgrade server". Spool chunks
+are versioned on disk and re-encoded, never dropped, across client upgrades.
 
 Errors: one problem-details shape, documented per route.
 
@@ -293,7 +312,9 @@ spool → authenticated ingest → list and search → viewer, running from the 
 - Server: migrations as reviewed Drizzle Kit SQL, run by an explicit
   `openhivemind migrate` step in the container entrypoint before the server
   starts; the server refuses to start on a pending or failed migration.
-  Readiness endpoint, graceful shutdown.
+  Readiness endpoint, graceful shutdown. `GET /metrics` (Prometheus text):
+  ingest latency histogram, rejections by reason, DB pool in-use/waiting,
+  retention sweep failures, search latency. No author labels, no content.
 - Viewer: login, sessions list, session feed with deep link, through the
   shared-schema fetch wrapper only.
 - Tests: kill the hook mid-write, kill the uploader mid-POST, offline for an
@@ -354,7 +375,9 @@ provider (later); enrichment, graph, traces (ROADMAP); Windows client.
 ## Open items to settle in Gate 1
 
 - `simple` vs `english` FTS configuration, measured on fixtures.
-- `pg_trgm`: required (ADR 0002 lists it) or optional with slower regex.
+- ~~`pg_trgm`~~ required; one supported deployment, the migration creates
+  the extension. Regex budgets stay: a pattern with no extractable trigrams
+  still scans the index.
 - ~~opencode capture mechanism~~ resolved (docs/protocol.md): a minimal
   in-process plugin spawns the hook on `session.idle`; the parser reads
   SQLite via `node:sqlite`; upserts are handled by content-hash re-send.
