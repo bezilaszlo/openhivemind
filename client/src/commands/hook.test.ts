@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -62,6 +62,32 @@ it("spools a Stop event, starts one uploader and logs without transcript text", 
   const log = await readFile(join(home, ".local/state/openhivemind/hook.log"), "utf8");
   expect(log).toContain(`session=${sessionId} status=captured`);
   expect(log).not.toContain(chunks[0].messages[0].text);
+});
+it("captures every subagent as a child of the root session", async () => {
+  await cp(
+    new URL("../../../fixtures/claude-code/subagents/", import.meta.url),
+    join(home, sessionId, "subagents"),
+    { recursive: true },
+  );
+  await hook({ input: stdin("Stop"), startUploader: () => {} });
+  const metas = (await spooled())
+    .flatMap((batch) => batch.chunks)
+    .map((chunk) => chunk.meta)
+    .filter((meta) => meta.parent_external_id)
+    .sort((left, right) => left.spawn_depth - right.spawn_depth);
+  expect(metas).toHaveLength(2);
+  expect(metas[0]).toMatchObject({
+    parent_external_id: sessionId,
+    spawn_depth: 1,
+    model_explicit: "claude-opus-5",
+    title: "Fixture subagent task",
+    remote: "github.com/example/hook",
+  });
+  expect(metas[1]).toMatchObject({ parent_external_id: sessionId, spawn_depth: 2 });
+  expect(metas[1]!.model_explicit).toBeUndefined();
+  expect(await readFile(join(home, ".local/state/openhivemind/hook.log"), "utf8")).toContain(
+    "children=2",
+  );
 });
 it("marks the session complete on SessionEnd", async () => {
   await hook({ input: stdin("Stop"), startUploader: () => {} });

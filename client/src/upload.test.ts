@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -144,6 +144,26 @@ it("captures and delivers a turn appended after the last hook read the transcrip
   expect(result).toMatchObject({ sent: 2, pending: 0 });
   const delivered = JSON.parse(String(sentBodies.at(-1))) as { messages: { seq: number }[] };
   expect(delivered.messages.map((message) => message.seq)).toEqual([2]);
+});
+it("captures a subagent that appeared after the session was captured", async () => {
+  await spool();
+  await drain(config, { transport: transport((_, id) => accepted(id)), sleep });
+  await cp(
+    new URL("../../fixtures/claude-code/subagents/", import.meta.url),
+    join(home, event.sessionId, "subagents"),
+    { recursive: true },
+  );
+  const result = await drain(config, { transport: transport((_, id) => accepted(id)), sleep });
+  expect(result).toMatchObject({ sent: 2, pending: 0 });
+  const metas = sentBodies
+    .slice(1)
+    .map(
+      (body) =>
+        (JSON.parse(body) as { meta: { parent_external_id?: string; spawn_depth: number } }).meta,
+    )
+    .sort((left, right) => left.spawn_depth - right.spawn_depth);
+  expect(metas.map((meta) => meta.spawn_depth)).toEqual([1, 2]);
+  expect(new Set(metas.map((meta) => meta.parent_external_id))).toEqual(new Set([event.sessionId]));
 });
 it("replays a chunk whose outcome was ambiguous", async () => {
   await spool();

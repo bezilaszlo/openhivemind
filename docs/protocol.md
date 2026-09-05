@@ -140,7 +140,9 @@ external id and `spawn_depth` from its `.meta.json` (default 1); the tree shape
 lives in `spawn_depth`, not in a chain of parents. `title` comes from the
 sidecar `description`, `model_explicit` from a non-empty sidecar `model`, and
 `models` from the child transcript. A child discovered after the root session
-completed is still captured on the next drain. The parent transcript is left
+completed is still captured on the next drain, and the hook hands the spool to
+the uploader before it scans for children, so a harness that reaps the hook
+when the session exits cannot lose the hand-off. The parent transcript is left
 alone: its `Agent` tool-call lines already record the spawn. The child's
 external id is `<root session id>:<agent id>`.
 

@@ -3,7 +3,16 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import lockfile from "proper-lockfile";
 import { ApiError, createApi, routes, type Chunk } from "@openhivemind/shared";
-import { allowed, capture, readState, type Envelope, type State } from "./capture";
+import {
+  allowed,
+  capture,
+  readState,
+  sessionFolder,
+  type Envelope,
+  type Event,
+  type State,
+} from "./capture";
+import { children } from "./harnesses/index";
 import type { Config } from "./config";
 import { atomic, stateRoot, upgradePath } from "./state";
 export interface DrainOptions {
@@ -74,6 +83,17 @@ async function deliver(
       ...(outcome.kind === "permanent" ? { attempts: (envelope.attempts ?? 0) + 1 } : {}),
     });
   return { sent, outcome };
+}
+async function outstanding(event: Event, config: Config): Promise<boolean> {
+  const info = await stat(event.transcriptPath).catch(() => undefined);
+  if (!info) return false;
+  const state = (await readFile(
+    join(sessionFolder(config, event.source, event.sessionId), "state.json"),
+    "utf8",
+  ).catch(() => undefined)) as string | undefined;
+  if (!state) return true;
+  const known = JSON.parse(state) as State;
+  return info.size > known.offset || info.ino !== known.inode;
 }
 async function dropSession(folder: string, state: State) {
   for (const name of await readdir(folder))
@@ -161,13 +181,23 @@ export async function drain(
       (info) => info.size > state.offset || info.ino !== state.inode,
       () => false,
     );
-    if (!state.paused && !behind) continue;
-    try {
-      restarted = (await capture(state.event, config)).chunks > 0 || restarted;
-    } catch (error) {
-      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
-        await atomic(path, { ...state, gap: true });
-      else errors.push("recapture failed");
+    if (state.paused || behind) {
+      try {
+        restarted = (await capture(state.event, config)).chunks > 0 || restarted;
+      } catch (error) {
+        if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
+          await atomic(path, { ...state, gap: true });
+        else errors.push("recapture failed");
+      }
+    }
+    // Subagents that only appeared, or grew, after the session's last hook.
+    for (const child of await children(state.event)) {
+      if (!(await outstanding(child, config))) continue;
+      try {
+        restarted = (await capture(child, config)).chunks > 0 || restarted;
+      } catch {
+        errors.push("recapture failed");
+      }
     }
   }
   if (!resumed && !stopped && restarted) {

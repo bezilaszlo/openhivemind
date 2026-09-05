@@ -26,6 +26,9 @@ export interface Event {
   version?: string;
   completed?: boolean;
   parentId?: string;
+  spawnDepth?: number;
+  title?: string;
+  modelExplicit?: string;
 }
 export interface State {
   generation: number;
@@ -126,7 +129,14 @@ export async function capture(
     return { status: "no origin", chunks: 0, bytes: 0 };
   }
   const extra = await patterns(event.cwd);
-  if (JSON.stringify(scrubValue(event, extra)) !== JSON.stringify(event))
+  // Only the locator has to be clean here; free-form fields are scrubbed with the metadata.
+  const locator = {
+    sessionId: event.sessionId,
+    transcriptPath: event.transcriptPath,
+    cwd: event.cwd,
+    parentId: event.parentId,
+  };
+  if (JSON.stringify(scrubValue(locator, extra)) !== JSON.stringify(locator))
     return { status: "sensitive locator", chunks: 0, bytes: 0 };
   const root = stateRoot(config);
   const folder = sessionFolder(config, event.source, event.sessionId);
@@ -184,11 +194,15 @@ export async function capture(
         branches: [...new Set([...(state.meta?.branches ?? []), safe.meta.branch ?? ""])],
         title:
           state.meta?.title ??
+          event.title ??
           safe.messages.find((message) => message.kind === "prompt")?.text.slice(0, 4096) ??
           "Untitled session",
         started_at: state.meta?.started_at ?? safe.messages[0]?.ts ?? new Date().toISOString(),
         completed: Boolean(state.meta?.completed || event.completed),
-        spawn_depth: state.meta?.spawn_depth ?? 0,
+        spawn_depth: state.meta?.spawn_depth ?? event.spawnDepth ?? 0,
+        ...((state.meta?.model_explicit ?? event.modelExplicit)
+          ? { model_explicit: state.meta?.model_explicit ?? event.modelExplicit }
+          : {}),
         models: [
           ...new Set([
             ...(state.meta?.models ?? []),

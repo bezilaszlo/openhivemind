@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { capture, type Event } from "../capture";
 import { loadConfig } from "../config";
 import { errorClass, log } from "../state";
-import { claudeCodeEvent } from "../harnesses/claude-code";
+import { children, claudeCodeEvent } from "../harnesses/index";
 import { uploaderRunning } from "./sync";
 export interface HookOptions {
   input?: string;
@@ -35,21 +35,33 @@ export async function hook(options: HookOptions = {}): Promise<void> {
     event = claudeCodeEvent(JSON.parse(options.input ?? (await readStdin())) as unknown);
     if (!event) return;
     const config = await loadConfig();
-    const result = await capture(event, config, { dryRun: options.dryRun });
+    const results = [await capture(event, config, { dryRun: options.dryRun })];
+    // Hand the spool over before capturing children: a harness that reaps the hook when the
+    // session exits must not lose the uploader, which picks the children up on its own.
+    const spooled = !["excluded", "no origin", "sensitive locator"].includes(results[0]!.status);
+    if (spooled && !options.dryRun && !(await uploaderRunning(config)))
+      await (options.startUploader ?? detach)();
+    if (spooled)
+      for (const child of await children(event))
+        results.push(await capture(child, config, { dryRun: options.dryRun }));
     if (options.dryRun) {
-      console.log(JSON.stringify(result.payloads ?? [], null, 2));
+      console.log(
+        JSON.stringify(
+          results.flatMap((result) => result.payloads ?? []),
+          null,
+          2,
+        ),
+      );
       return;
     }
     await log({
       source: event.source,
       session: event.sessionId,
-      status: result.status,
-      chunks: result.chunks,
-      bytes: result.bytes,
+      status: results[0]!.status,
+      children: results.length - 1,
+      chunks: results.reduce((total, result) => total + result.chunks, 0),
+      bytes: results.reduce((total, result) => total + result.bytes, 0),
     });
-    // Nothing was spooled for this session only when the session never reaches the spool at all.
-    const spooled = !["excluded", "no origin", "sensitive locator"].includes(result.status);
-    if (spooled && !(await uploaderRunning(config))) await (options.startUploader ?? detach)();
   } catch (error) {
     await log({
       source: "claude-code",

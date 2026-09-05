@@ -1,0 +1,7 @@
+{
+  "agentType": "general-purpose",
+  "description": "Fixture subagent task",
+  "toolUseId": "toolu-fixture-01",
+  "spawnDepth": 1,
+  "model": "claude-opus-5"
+}

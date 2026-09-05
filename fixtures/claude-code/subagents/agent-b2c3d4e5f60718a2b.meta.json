@@ -1,0 +1,7 @@
+{
+  "agentType": "Explore",
+  "description": "Fixture nested subagent task",
+  "toolUseId": "toolu-fixture-02",
+  "spawnDepth": 2,
+  "parentAgentId": "a1b2c3d4e5f60718a"
+}
