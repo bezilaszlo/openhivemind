@@ -207,6 +207,17 @@ system owns install, update, disable and uninstall.
 opencode entry above. Nothing else. Flags: `--read-only` (no capture),
 `--harness <name>`.
 
+Implemented today: `setup <url> --token <pat>` and `login --server <url>
+--token <pat>` (the token is read from stdin when the flag is absent or `-`),
+both taking repeatable `--root` / `--exclude` and `--read-only`, and storing
+the resolved real paths in a mode-600 config. Browser login and the opencode
+entry are not implemented yet. `doctor` reports the config file and its mode,
+server reachability and the accepted protocol range, token validity, the
+effective roots and exclude lists, whether the Claude Code plugin is
+installed, invalid ignore lines, spool size, pending and permanently rejected
+chunks, paused and gap sessions, and a recorded "upgrade client" stop. It
+exits 2 when a check fails.
+
 Skills alone are also publishable as an Agent Skills repo (`npx skills add
 openhivemind/openhivemind`, skills.sh) for editors we do not capture from.
 Optional extra, never the primary path: it installs no hooks.
