@@ -91,8 +91,8 @@ export const demoSessions: Session[] = scenarios.map(
       cache_creation: 4300,
     },
     messageCount: 7,
-    childCount: index === 0 ? 1 : 0,
-    agents: index === 0 ? ["codex"] : [],
+    childCount: 0,
+    agents: null,
     lastPrompt: prompt,
     lastReply: "Implemented and verified. The regression test covers the original failure.",
     summary:
@@ -101,26 +101,71 @@ export const demoSessions: Session[] = scenarios.map(
         : null,
   }),
 );
-const child = (index: number, title: string, source: Session["source"]): Session => ({
-  ...demoSessions[0]!,
+const child = (
+  parent: Session,
+  index: number,
+  title: string,
+  spawn_depth: number,
+  model?: string,
+): Session => ({
+  ...parent,
   id: `demo-agent-${index}`,
   external_id: `fixture-agent-${index}`,
-  source,
   title,
-  spawn_depth: 1,
-  parent_session_id: "demo-session-1",
+  spawn_depth,
+  parent_session_id: parent.id,
+  parent_external_id: parent.external_id,
+  model_explicit: model,
+  models: [model ?? parent.models[0]!],
+  messageCount: 5,
   childCount: 0,
-  agents: [],
-  models: [source === "codex" ? "gpt-5.4" : "claude-sonnet-4-6"],
+  agents: null,
   summary: null,
   lastPrompt: title,
   lastReply: "Reported back to the parent session.",
+  tokens: {
+    input: 8200 + index * 900,
+    output: 1400 + index * 130,
+    cache_read: 9000,
+    cache_creation: 0,
+  },
 });
+const nested = demoSessions[0]!;
+const flat = demoSessions[2]!;
 demoSessions.push(
-  child(1, "Search the worker for the acknowledgement path", "claude-code"),
-  child(2, "Review the idempotency key migration", "codex"),
+  child(nested, 1, "Search the worker for the acknowledgement path", 1),
+  child(nested, 2, "Review the idempotency key migration", 1),
+  child(nested, 3, "Check the queue acknowledgement contract", 1, "claude-haiku-4-6"),
+  child(nested, 4, "Read the retry policy the reviewer flagged", 2),
+  child(flat, 5, "Draft the reader typography scale", 1),
+  child(flat, 6, "Collect the transcript fixtures", 1),
 );
-demoSessions[0]!.childCount = 2;
+/** Mirrors the backend rollup: how many children, how deep, which models, what they cost. */
+const rollup = (parent: Session): Session["agents"] => {
+  const children = demoSessions.filter((session) => session.parent_session_id === parent.id);
+  if (!children.length) return null;
+  const models = new Map<string, { model: string; count: number; inherited: number }>();
+  for (const session of children) {
+    const model = session.models[0] ?? "Unknown";
+    const use = models.get(model) ?? { model, count: 0, inherited: 0 };
+    use.count += 1;
+    if (!session.model_explicit) use.inherited += 1;
+    models.set(model, use);
+  }
+  return {
+    count: children.length,
+    maxDepth: Math.max(...children.map((session) => session.spawn_depth || 1)),
+    models: [...models.values()].sort(
+      (left, right) => right.count - left.count || left.model.localeCompare(right.model),
+    ),
+    inputTokens: children.reduce((total, session) => total + (session.tokens?.input ?? 0), 0),
+    outputTokens: children.reduce((total, session) => total + (session.tokens?.output ?? 0), 0),
+  };
+};
+for (const session of demoSessions) {
+  session.agents = rollup(session);
+  session.childCount = session.agents?.count ?? 0;
+}
 export const demoMessages = (session: Session): Message[] => [
   { seq: 1, rev: 1, kind: "prompt", text: session.lastPrompt!, ts: session.started_at },
   {
@@ -207,7 +252,11 @@ export const demoTransport: typeof fetch = async (input, init) => {
           session.remote.includes(url.searchParams.get("remote")!)) &&
         (!url.searchParams.get("branch") ||
           session.branch.includes(url.searchParams.get("branch")!)) &&
-        (url.searchParams.get("mine") !== "true" || session.owner_user_id === "demo-user"),
+        (url.searchParams.get("mine") !== "true" || session.owner_user_id === "demo-user") &&
+        (url.searchParams.get("subagents") !== "true" || Boolean(session.agents)) &&
+        (url.searchParams.get("nested") !== "true" || (session.agents?.maxDepth ?? 0) >= 2) &&
+        (url.searchParams.get("inherited") !== "true" ||
+          (session.agents?.models ?? []).some((use) => use.inherited > 0)),
     );
     const parent = url.searchParams.get("parent");
     items = parent

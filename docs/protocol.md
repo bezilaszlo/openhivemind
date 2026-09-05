@@ -133,7 +133,16 @@ Haiku runs with logging hooks in a scratch repo).
 Adapter: `Stop` (async) → `turn`; `SessionEnd` → `session-end` (spool only).
 Capture cursor: byte offset; partial trailing line left for the next read.
 Subagent files are discovered from the transcript directory on each turn and
-carry their own cursors; subagent capture is not implemented yet.
+on every drain re-capture, and carry their own cursors and spool state exactly
+like the root. Nesting is flattened on purpose: every child, at any depth, is
+its own `agent_session` with `parent_external_id` set to the **root** session's
+external id and `spawn_depth` from its `.meta.json` (default 1); the tree shape
+lives in `spawn_depth`, not in a chain of parents. `title` comes from the
+sidecar `description`, `model_explicit` from a non-empty sidecar `model`, and
+`models` from the child transcript. A child discovered after the root session
+completed is still captured on the next drain. The parent transcript is left
+alone: its `Agent` tool-call lines already record the spawn. The child's
+external id is `<root session id>:<agent id>`.
 
 The plugin's hook command is `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.js" hook`,
 a self-contained bundle that runs without `node_modules`.
@@ -327,8 +336,18 @@ Every route documents request, response, defaults and hard caps.
   pagination; `context: N` bounded neighbours; snippets escaped, generated
   only for returned hits.
 - `GET /api/v1/sessions`: filters remote, author, branch, since/until, mine,
-  parent, includeChildren; cursor pagination; returns meta, counts, tokens,
-  `childCount`, agents rollup, `lastPrompt`, `lastReply`, current summary.
+  parent, includeChildren, and the subagent shape filters `subagents`, `nested`
+  (a child at `spawn_depth` 2 or deeper) and `inherited` (a child with no
+  `model_explicit`); cursor pagination; returns meta, counts, tokens,
+  `childCount`, `lastPrompt`, `lastReply`, current summary and the agents
+  rollup. `agents` is null when the session spawned none, otherwise
+  `{count, maxDepth, models: [{model, count, inherited}], inputTokens,
+  outputTokens}` over the session's children, computed in one grouped query for
+  the whole page. Nesting is flattened by the harnesses: a child's
+  `parent_session_id` is the root session and `meta.spawn_depth` carries how
+  deep it was spawned, so `maxDepth` is the deepest child, `inherited` counts
+  children that ran the session's model without asking for one, and the token
+  figures cover the children only.
 - `GET /api/v1/sessions/{idOrPrefix}`: `from`, `to`, `around`+`context`,
   `last`, `kind`, `maxChars`; prefix resolution scoped to the org, 404 / 409.
 - `GET /api/v1/changes?since=<cursor>`: ingest-order change feed (receipt

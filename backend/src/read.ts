@@ -1,6 +1,7 @@
 import type pg from "pg";
 import {
   parseQuery,
+  type Agents,
   type Query,
   type Session,
   type Message,
@@ -23,6 +24,9 @@ export type Filter = {
   cursor?: string;
   parent?: string;
   includeChildren?: boolean;
+  subagents?: boolean;
+  nested?: boolean;
+  inherited?: boolean;
 };
 function cursor(value: unknown): string {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
@@ -50,12 +54,74 @@ function filters(context: Context, filter: Filter, values: unknown[]) {
   if (filter.until) add("s.last_activity_at<?::timestamptz", filter.until);
   if (filter.parent) add("s.parent_session_id=?", filter.parent);
   else if (!filter.includeChildren) clauses.push("s.parent_session_id IS NULL");
+  // Subagent shape. Nesting is flattened: children hang off the root session and
+  // meta.spawn_depth carries how deep the harness spawned them.
+  const child = (extra = "") =>
+    `EXISTS (SELECT 1 FROM agent_session c WHERE c.parent_session_id=s.id AND c.org_id=$1${extra})`;
+  if (filter.subagents) clauses.push(child());
+  if (filter.nested) clauses.push(child(" AND COALESCE((c.meta->>'spawn_depth')::int,1)>=2"));
+  if (filter.inherited) clauses.push(child(" AND c.meta->>'model_explicit' IS NULL"));
   return clauses;
+}
+/**
+ * One grouped pass over the children of every session on the page: how many,
+ * how deep, which models and whether each child inherited the session's model.
+ */
+export async function agentRollups(
+  db: pg.Pool | pg.PoolClient,
+  orgId: string,
+  ids: string[],
+): Promise<Map<string, Agents>> {
+  if (!ids.length) return new Map();
+  const result = await db.query<{
+    parent: string;
+    count: number;
+    max_depth: number;
+    models: Agents["models"];
+    input_tokens: string;
+    output_tokens: string;
+  }>(
+    `WITH child AS (
+   SELECT c.parent_session_id AS parent, c.id,
+     GREATEST(COALESCE((c.meta->>'spawn_depth')::int,1),1) AS depth,
+     (c.meta->>'model_explicit') IS NULL AS inherited,
+     COALESCE(c.meta->'models'->>0,'Unknown') AS model
+   FROM agent_session c WHERE c.org_id=$1 AND c.parent_session_id = ANY($2::text[])
+ ), model AS (
+   SELECT parent, model, count(*)::int AS count, count(*) FILTER (WHERE inherited)::int AS inherited
+   FROM child GROUP BY parent, model
+ ), consumed AS (
+   SELECT c.parent, SUM((m.data->'usage'->>'input')::bigint) AS input,
+     SUM((m.data->'usage'->>'output')::bigint) AS output
+   FROM child c JOIN agent_message m ON m.session_id=c.id
+   WHERE m.data->'usage' IS NOT NULL AND m.data->'usage'<>'null'::jsonb GROUP BY c.parent
+ )
+ SELECT c.parent, count(*)::int AS count, max(c.depth)::int AS max_depth,
+   (SELECT jsonb_agg(jsonb_build_object('model',m.model,'count',m.count,'inherited',m.inherited)
+      ORDER BY m.count DESC, m.model) FROM model m WHERE m.parent=c.parent) AS models,
+   COALESCE((SELECT u.input FROM consumed u WHERE u.parent=c.parent),0)::bigint AS input_tokens,
+   COALESCE((SELECT u.output FROM consumed u WHERE u.parent=c.parent),0)::bigint AS output_tokens
+ FROM child c GROUP BY c.parent`,
+    [orgId, ids],
+  );
+  return new Map(
+    result.rows.map((row) => [
+      row.parent,
+      {
+        count: row.count,
+        maxDepth: row.max_depth,
+        models: row.models ?? [],
+        inputTokens: Number(row.input_tokens),
+        outputTokens: Number(row.output_tokens),
+      },
+    ]),
+  );
 }
 export async function sessionView(
   db: pg.Pool | pg.PoolClient,
   context: Context,
   id: string,
+  rollups?: Map<string, Agents>,
 ): Promise<Session> {
   const result = await db.query(
     `SELECT s.*, (SELECT count(*)::int FROM agent_message WHERE session_id=s.id) AS count,
@@ -63,13 +129,13 @@ export async function sessionView(
  (SELECT text FROM agent_message WHERE session_id=s.id AND kind='prompt' ORDER BY seq DESC LIMIT 1) AS prompt,
  (SELECT text FROM agent_message WHERE session_id=s.id AND kind='reply' ORDER BY seq DESC LIMIT 1) AS reply,
  (SELECT text FROM agent_message WHERE session_id=s.id AND kind='summary' ORDER BY seq DESC LIMIT 1) AS summary,
- (SELECT jsonb_agg(DISTINCT source) FROM agent_session WHERE parent_session_id=s.id AND org_id=$2) AS agents,
  (SELECT jsonb_build_object('input',sum((data->'usage'->>'input')::bigint),'output',sum((data->'usage'->>'output')::bigint),'cache_read',sum((data->'usage'->>'cache_read')::bigint),'cache_creation',sum((data->'usage'->>'cache_creation')::bigint)) FROM agent_message WHERE session_id=s.id AND data->'usage' IS NOT NULL AND data->'usage'<>'null'::jsonb) AS tokens
  FROM agent_session s WHERE id=$1 AND org_id=$2`,
     [id, context.orgId],
   );
   const row = result.rows[0];
   if (!row) throw new HttpError(404, "Session not found");
+  const agents = (rollups ?? (await agentRollups(db, context.orgId, [id]))).get(id) ?? null;
   return {
     ...row.meta,
     id: row.id,
@@ -81,7 +147,7 @@ export async function sessionView(
     completed: row.completed,
     messageCount: row.count,
     childCount: row.children,
-    agents: row.agents ?? [],
+    agents,
     lastPrompt: row.prompt?.slice(0, 500) ?? null,
     lastReply: row.reply?.slice(0, 500) ?? null,
     summary: row.summary?.slice(0, 4096) ?? null,
@@ -106,8 +172,13 @@ export async function sessions(pool: pg.Pool, context: Context, filter: Filter) 
   );
   const selected = result.rows.slice(0, limit);
   const last = selected.at(-1);
+  const rollups = await agentRollups(
+    pool,
+    context.orgId,
+    selected.map((row) => row.id),
+  );
   return {
-    items: await Promise.all(selected.map((row) => sessionView(pool, context, row.id))),
+    items: await Promise.all(selected.map((row) => sessionView(pool, context, row.id, rollups))),
     cursor:
       result.rows.length > limit && last
         ? cursor([last.last_activity_at.toISOString(), last.id])

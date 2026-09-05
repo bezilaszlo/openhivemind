@@ -62,6 +62,20 @@ export const Problem = Type.Object({
   detail: string(),
   minimumVersion: Type.Optional(Type.Integer()),
 });
+export const AgentModelUse = Type.Object({
+  model: string(200),
+  count: Type.Integer({ minimum: 1 }),
+  inherited: Type.Integer({ minimum: 0 }),
+});
+/** Rollup over a session's subagents. Null when the session spawned none. */
+export const Agents = Type.Object({
+  count: Type.Integer({ minimum: 1 }),
+  maxDepth: Type.Integer({ minimum: 1 }),
+  models: Type.Array(AgentModelUse, { maxItems: 1000 }),
+  inputTokens: Type.Integer({ minimum: 0 }),
+  outputTokens: Type.Integer({ minimum: 0 }),
+});
+export type Agents = Static<typeof Agents>;
 export const Session = Type.Intersect([
   Meta,
   Type.Object({
@@ -74,7 +88,7 @@ export const Session = Type.Intersect([
     tokens: Type.Union([Usage, Type.Null()]),
     messageCount: Type.Integer(),
     childCount: Type.Integer(),
-    agents: Type.Array(string()),
+    agents: Type.Union([Agents, Type.Null()]),
     lastPrompt: Type.Union([string(), Type.Null()]),
     lastReply: Type.Union([string(), Type.Null()]),
     summary: Type.Union([string(), Type.Null()]),
@@ -176,7 +190,13 @@ export const routes = {
     page(Session),
     Type.Intersect([
       Filters,
-      Type.Object({ parent: Type.Optional(Id), includeChildren: Type.Optional(Type.Boolean()) }),
+      Type.Object({
+        parent: Type.Optional(Id),
+        includeChildren: Type.Optional(Type.Boolean()),
+        subagents: Type.Optional(Type.Boolean()),
+        nested: Type.Optional(Type.Boolean()),
+        inherited: Type.Optional(Type.Boolean()),
+      }),
     ]),
   ),
   session: route(
