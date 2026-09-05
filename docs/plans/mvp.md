@@ -77,7 +77,15 @@ Rules:
   holds integration and acceptance scenarios that need Postgres, a temp HOME
   or a packed tarball. Frontend components are tested with Vitest and
   Testing Library; no browser e2e in the MVP. Pack and load are CI jobs over
-  those directories, not extra trees.
+  those directories, not extra trees. Database tests create a fresh, migrated,
+  run-owned database and remove it afterwards. Local runs work against compose
+  Postgres without environment configuration; CI uses its Postgres service.
+  Tests are isolated by rollback when they share one transaction; auth, replay,
+  concurrency and other commit-dependent scenarios use clean-table isolation.
+  Deterministic `drizzle-seed` fixtures provide users, organisations, PATs and
+  sessions with schema-checked overrides; no custom factory framework.
+  A small rollback helper covers transaction-sharing tests. Use the already
+  running compose Postgres, not testcontainers.
 - Plugin directories are packaging sources; assembly copies the built client
   and the canonical skills into each harness's native layout (opencode command
   files derived from the same skills). Runtime state never lives in the repo.
@@ -130,7 +138,9 @@ mock issuer, first-user org bootstrap and PAT mint. If they cannot be made to
 pass on the pinned version, ADR 0003 caveat 10 applies before Gate 3.
 
 Contracts live in `docs/protocol.md` (data model, ingest, read routes,
-compatibility, client wrapper); this gate makes them exist as code.
+compatibility, client wrapper); this gate makes them exist as code. Database
+integration tests prove fresh-migration setup, per-test isolation and cleanup;
+no integration test clears a developer's application database.
 
 ## Gate 3 — vertical slice
 

@@ -1,0 +1,56 @@
+@import "tailwindcss";
+:root {
+  color-scheme: light dark;
+  --background: #fafafa;
+  --foreground: #202124;
+  --muted: #5d6570;
+  --accent: #165dcc;
+  --border: #d7dce2;
+  font-family: system-ui, sans-serif;
+  background: var(--background);
+  color: var(--foreground);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #17191c;
+    --foreground: #ebedf0;
+    --muted: #abb3bf;
+    --accent: #8bb7ff;
+    --border: #424851;
+  }
+}
+main {
+  max-width: 75ch;
+  margin: 48px auto;
+  padding: 24px;
+  line-height: 1.6;
+}
+h1 {
+  font-size: 24px;
+  font-weight: 650;
+}
+h2 {
+  font-size: 20px;
+  margin-top: 32px;
+}
+header {
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+header p {
+  color: var(--muted);
+}
+a,
+button {
+  color: var(--accent);
+}
+button {
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

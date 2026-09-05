@@ -1,0 +1,24 @@
+{
+  "name": "openhivemind",
+  "version": "0.1.0",
+  "description": "Shared, searchable coding-agent history",
+  "license": "MIT",
+  "bin": {
+    "openhivemind": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "plugins"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "tsup"
+  },
+  "devDependencies": {
+    "@openhivemind/shared": "workspace:*"
+  },
+  "engines": {
+    "node": ">=24.20.0 <25"
+  }
+}

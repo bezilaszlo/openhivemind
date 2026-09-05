@@ -1,0 +1,22 @@
+{
+  "attribution": "Rule categories informed by gitleaks (https://github.com/gitleaks/gitleaks), MIT, Copyright (c) 2018 Zachary Rice. Expressions independently implemented for JavaScript; see LICENSE in this directory.",
+  "patterns": [
+    {
+      "kind": "pem",
+      "pattern": "-----BEGIN [A-Z ]*PRIVATE KEY-----[\\s\\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)"
+    },
+    { "kind": "url-auth", "pattern": "[a-z][a-z0-9+.-]*://[^\\s/@]+:[^\\s/@]+@", "flags": "gi" },
+    { "kind": "openhivemind", "pattern": "ohm_[a-f0-9]{40}", "flags": "gi" },
+    { "kind": "cloud", "pattern": "(?:AKIA|ASIA)[A-Z0-9]{16}|AIza[0-9A-Za-z_-]{35}" },
+    {
+      "kind": "api-key",
+      "pattern": "sk-[A-Za-z0-9_-]{16,}|(?:gh[pousr]_|github_pat_|glpat-)[A-Za-z0-9_-]{16,}|xox[baprs]-[A-Za-z0-9-]{10,}"
+    },
+    { "kind": "jwt", "pattern": "eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+" },
+    {
+      "kind": "assignment",
+      "pattern": "\\b(?:password|secret|token|api[_-]?key)\\b[\\\"']?\\s*[:=]\\s*(?:\\\"[^\\\"]*\\\"|'[^']*'|[^\\s,;]+)",
+      "flags": "gi"
+    }
+  ]
+}

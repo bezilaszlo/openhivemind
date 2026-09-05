@@ -1,0 +1,8 @@
+packages:
+  - shared
+  - backend
+  - frontend
+  - client
+allowBuilds:
+  esbuild: true
+  lefthook: true

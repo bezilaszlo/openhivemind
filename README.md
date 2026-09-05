@@ -6,7 +6,30 @@ Shared, searchable history of coding-agent sessions for a team. Self-hosted.
 - [ROADMAP.md](ROADMAP.md) — what ships when
 - [docs/decisions/](docs/decisions/) — why things are the way they are
 
-**Status: design phase.** No runnable code yet.
+**Status: MVP implementation in progress.** The workspace, shared contracts,
+privacy/search/parser unit tests, API reference and initial local-auth database
+integration are runnable. Capture, data routes, OIDC acceptance, the viewer and
+release acceptance are unfinished; this is not v1.
+
+## Development
+
+Node 24.20.0 LTS and pnpm 11.25.0 are pinned. `pnpm install` provisions the
+workspace Node runtime even when your shell uses Node 26; `.nvmrc` and CI use
+that same version. Run `pnpm check`, `pnpm build`, and `pnpm test:pack`.
+
+For database tests, start `docker compose up -d postgres`, then run
+`pnpm test:integration`. The harness creates a uniquely named
+`openhivemind_test_*` database, applies migrations and drops it at teardown.
+`DATABASE_URL` optionally selects another Postgres server (the user needs
+CREATEDB); it never selects a database to truncate. Commit-dependent HTTP tests
+reset tables only in the run-owned database. Tests sharing a transaction should
+use rollback isolation. Use `drizzle-seed` for deterministic, schema-typed fixture data; the rollback
+helper lives beside integration tests. No testcontainers are needed.
+
+`docker compose up --build` starts the current development server at
+http://localhost:3000 and the runtime API reference at `/docs`. An initial auth
+secret is generated in the persistent app-state volume. See
+[the implementation plan](docs/plans/mvp.md) for remaining gates.
 
 ## How it works
 
@@ -28,14 +51,14 @@ is a parser behind the same hook contract.
 - No per-person analytics; symmetric read access inside a team; owner-only
   purge; retention as a privacy control.
 
-## Layout (planned)
+## Layout
 
 ```
 backend/     server and API
-frontend/    web viewer, client generated from the server's OpenAPI
+frontend/    React viewer, typed shared-schema API wrapper
 client/      hook, CLI, harness plugin manifests, agent skills
-fixtures/    synthetic transcripts and golden output
-deploy/      compose, Dockerfile
+shared/      schemas, parsers, privacy and search grammar
+compose.yml  app + Postgres; Dockerfile at the root
 docs/        decisions, protocol, search semantics
 ```
 

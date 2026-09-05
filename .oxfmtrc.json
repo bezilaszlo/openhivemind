@@ -1,0 +1,9 @@
+{
+  "ignorePatterns": [
+    "docs/decisions/**",
+    "docs/plans/**",
+    "docs/protocol.md",
+    "pnpm-lock.yaml",
+    "backend/src/db/migrations/**"
+  ]
+}
