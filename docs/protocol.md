@@ -60,8 +60,51 @@ else. Parsing, scrubbing, spooling and upload are harness-neutral.
 
 ## Capture state machine
 
-See `docs/plans/mvp.md` Gate 3 until this section is written from the
-implementation.
+1. **Hook** (bounded, `async: true` where the harness supports it): read the
+   event, resolve project key, take the per-session lock with a bounded wait
+   and stale-owner recovery, read complete new records from the capture
+   cursor (partial final line left for next time), map source event ids to
+   seqs, scrub, write a spool chunk atomically (temp + rename), advance the
+   capture cursor atomically, release the lock, spawn the uploader if none is
+   running, exit 0. No network, no retries, no downloads inside the hook.
+
+2. **Uploader** (one per session, lock-held, detached where the platform
+   allows): drain spool chunks in order, POST, delete a chunk only on 202 or
+   410, back off on 429/5xx, stop after a bounded number of attempts and
+   leave the rest for the next drain.
+
+3. **Drain triggers**: next hook of any session, `SessionEnd` (spool only if
+   the budget is tight, then spawn the uploader), `openhivemind sync`,
+   `doctor`.
+
+State is namespaced by server, org, harness and session under
+`~/.local/state/openhivemind/`.
+
+**Crash recovery**: per-session capture state is one record: transcript
+cursor, next seq, source-event-id → seq map, and per-seq content hash / rev.
+Every spool chunk carries the state *after* it (cursor range, seq range,
+the map and hash entries it added). On hook start the persisted state is
+reconciled with the chunks present: the newest chunk whose start matches or
+precedes the persisted cursor wins, and cursor, next seq, map and hashes are
+restored from it before reading. A chunk is never re-read from the
+transcript, and seqs after a recovered chunk continue from its seq range.
+State record and chunk are written atomically (temp + rename), chunk first,
+so a crash between them is exactly the case above. Anything that still
+duplicates is absorbed by the replay contract.
+
+**Storage full**: the spool has a hard cap per server. At the cap capture
+pauses for new chunks (the cursor stays put) and the session is marked
+paused; `doctor` reports "capture paused, N chunks pending"; only
+acknowledged chunks are ever deleted. Resuming is a capture step, not just an
+upload: after a drain frees space, the uploader, `sync` and `doctor` re-run
+capture on every paused session whose transcript still exists. If the
+transcript is gone (harness cleanup, retention) the gap is permanent; the
+session is marked `gap` in its spool state and `doctor` reports it. "Nothing
+is lost" holds only while the transcript remains on disk. Disk-full writes
+fail the hook cleanly without moving the cursor. Truncated or replaced transcripts (size below cursor,
+changed inode) restart the cursor at 0 and rely on replay. Ambiguous HTTP
+outcomes (timeout after send) are resolved by the idempotent replay
+contract.
 
 ## Harness: Claude Code
 
@@ -139,7 +182,7 @@ whose capture cursor is the max `message.time.updated` seen, re-emitting rows
 updated since. Upserts mean a message can change after first capture: the
 client keeps a content hash per emitted seq and, when it changes, re-sends the
 message with `rev + 1`; the server replaces the row (revision contract in
-`docs/plans/mvp.md` Gate 2). Same seq and rev with a different hash remains a
+§ Ingest API below). Same seq and rev with a different hash remains a
 409. No `session-end` event; the drain runs on the
 next idle of any session, `sync`, or `doctor`.
 
@@ -167,6 +210,141 @@ opencode entry above. Nothing else. Flags: `--read-only` (no capture),
 Skills alone are also publishable as an Agent Skills repo (`npx skills add
 openhivemind/openhivemind`, skills.sh) for editors we do not capture from.
 Optional extra, never the primary path: it installs no hooks.
+
+## API contract
+
+Schemas are TypeBox in `shared/schemas`, imported by server routes, frontend
+and CLI; never a second hand-maintained contract. OpenAPI is derived at
+runtime and served at `/docs`.
+
+## Data model
+
+Auth tables are the ones Better Auth v1.7.2 generates (core + organization
+plugin), in Postgres schema `auth`, names kept so upgrades diff cleanly.
+Reconciled 2026-09-05 against the CLI built from the v1.7.2 source (the npm
+`@better-auth/cli@latest` was 1.4.21 and lacks the 1.7 identity model).
+
+- `auth.user(id, name, email unique, emailVerified, image?)`; global users.
+  Email is required by the library, including for OIDC sign-in.
+- `auth.account(id, issuer, accountId, providerId, userId, password?,
+  tokens…)`; unique (issuer, accountId). Local password lives here
+  (providerId `credential`). `accountLinking.enabled: false`: an unknown
+  (issuer, accountId) whose email matches an existing user fails to sign in
+  rather than linking; a new email creates a user with no membership.
+- `auth.session(id, token unique, userId, expiresAt, ipAddress?, userAgent?,
+  activeOrganizationId?)`; DB-backed cookie session, CSRF by the library.
+- `auth.verification(id, identifier, value, expiresAt)`; password reset.
+- `auth.organization(id, name, slug unique, logo?, metadata?)`.
+- `auth.member(id, organizationId, userId, role text, createdAt)`; role is a
+  plain text column. `creatorRole: "admin"` and a custom access-control set
+  limited to `admin|member`, so `owner` never appears. First-user bootstrap
+  is our transaction (org + admin member) guarded by a unique constraint;
+  `beforeCreateOrganization` rejects any later org.
+- `auth.invitation`: **not used**. The plugin requires an email per invite,
+  stores the plain id as the token and forces email equality on accept, which
+  rules out a copyable open link. Our own table instead:
+  `invite(id, org_id, email?, role, token_sha256 unique, expires_at,
+  created_by, accepted_by?, accepted_at?)`; single use; accept endpoint is
+  ours and creates the `auth.member` row through the library's adapter.
+  Optional SMTP sends the same link.
+Our tables, schema `public`, FK to `auth.organization.id` / `auth.user.id`:
+
+- `api_token(id, org_id, user_id, name, token_sha256 unique, scopes[],
+  created_at, last_used_at, revoked_at)`; `ohm_` + 40 hex, hashed at rest,
+  scopes `ingest`, `read` (MVP mints both).
+- `agent_session(id internal, org_id, owner_user_id, source, external_id,
+  parent_session_id? → agent_session.id, remote, branch, branches jsonb, cwd,
+  title, spawn_depth, model_explicit, models jsonb, started_at, last_activity_at,
+  received_at, completed, tokens{input, output, cache_read, cache_creation})`;
+  unique (org_id, source, external_id). Owner is always the PAT's user; ingest
+  into an existing session from a different user's PAT is rejected with 403
+  and reported by `doctor` (the client never retries it). Parent
+  resolved deferred: a child arriving first stores `parent_external_id` and is
+  linked when the parent arrives; parent must have the same org **and the
+  same owner**, otherwise the child stays unlinked and `doctor` reports it;
+  cycles rejected. Descendant deletion therefore stays owner-only.
+- `agent_message(session_id, seq, kind: prompt|reply|tool_call|summary,
+  source_event_id?, tool_name?, text, ts, branch?, model?, rev, usage?{input,
+  output, cache_read, cache_creation})`; PK (session, seq); FTS column over
+  `text` for all kinds; trigram index on `text`. Usage recorded once per
+  provider response, as deltas, `null` = unknown. Multiple summaries are kept
+  as messages; the session's "current summary" is the latest by seq.
+- `purge_tombstone(org_id, source, external_id, purged_at)`; ingest after a
+  tombstone returns 410 and the client drops its spool for that session.
+
+## Ingest API
+
+- `POST /api/v1/ingest/sessions/{externalId}` with `{chunkId, meta, messages[]}`.
+- Chunk limits: 2 MiB body after decompression, 64 KiB per message text
+  (client splits oversize text into continuation messages marked
+  `truncated: true`, never drops), 500 messages per chunk. Server rejects with
+  413 and a reason; client never re-sends an unfixable chunk forever: after N
+  permanent rejections it marks the chunk dead and `doctor` reports it.
+- Revisions: each message carries `rev` (from 1). Same seq, same rev, same
+  content hash: no-op. Same seq, higher rev: the row is replaced (text, usage,
+  FTS, `received_at`); this is how opencode's upserts arrive. Same seq, same
+  rev, different hash: 409 and reported, never silently dropped. Lower rev:
+  no-op. Search and usage totals see only the current rev; totals are
+  recomputed from committed rows after every replace.
+- Metadata merge is monotonic: `completed` never goes false, `branches` union,
+  token totals recomputed from committed messages, `last_activity_at` = max
+  message ts, `received_at` = server now.
+- Response: `202 {chunkId, committedThrough}` where `committedThrough` is the
+  highest seq below which all seqs are present. Client advances its delivery
+  cursor from `chunkId` acknowledgement, not from a max seq.
+- Backpressure: 429 with `Retry-After`; server bounds concurrent ingest.
+
+## Read API
+
+Every route documents request, response, defaults and hard caps.
+
+- `POST /api/v1/search`: grammar per `docs/search.md`: terms AND-ed, `"phrase"`,
+  `NOT x` and `-x`, `x OR y` and `x | y`, precedence NOT > AND > OR, escaping
+  rules, terms compiled to `to_tsquery` with `simple` config (decide vs
+  `english` on fixtures). Message-level match, session-level grouping ranked
+  by best hit with deterministic tie-break (score, ts desc, session id).
+  Filters: remote, author, branch, since/until, kind, mine. `regex: true` uses
+  `~` or `~*` per `caseSensitive`, Postgres dialect documented, invalid pattern
+  400, statement timeout → 408 with no results and a hint to narrow the
+  filters (a cancelled statement returns no rows). Cursor
+  pagination; `context: N` bounded neighbours; snippets escaped, generated
+  only for returned hits.
+- `GET /api/v1/sessions`: filters remote, author, branch, since/until, mine,
+  parent, includeChildren; cursor pagination; returns meta, counts, tokens,
+  `childCount`, agents rollup, `lastPrompt`, `lastReply`, current summary.
+- `GET /api/v1/sessions/{idOrPrefix}`: `from`, `to`, `around`+`context`,
+  `last`, `kind`, `maxChars`; prefix resolution scoped to the org, 404 / 409.
+- `GET /api/v1/changes?since=<cursor>`: ingest-order change feed (receipt
+  cursor, not message ts) for `tail`; replaces timestamp watermarks.
+- `GET /api/v1/usage`, `GET /api/v1/remotes`.
+- `DELETE /api/v1/sessions/{id}`: owner only; deletes descendants, writes
+  tombstones for each.
+- Org and members: `GET /orgs/me`, `GET/POST/DELETE /orgs/me/invites`,
+  `GET /orgs/me/members`, `PATCH /orgs/me/members/{userId}` (role, admin only),
+  `DELETE /orgs/me/members/{userId}`.
+- Tokens: `POST/GET/DELETE /me/tokens`.
+- Auth: `GET /auth/providers`, local login/logout/register-by-invite/password
+  reset, OIDC start/callback. Rate limits on all credential endpoints.
+- `GET /config`: enabled providers, app URL, feature flags, `protocol`
+  (current and minimum accepted version).
+
+Compatibility: every ingest chunk and every CLI request carries
+`protocolVersion` (integer, starts at 1). The server accepts the current and
+the previous version. Unknown fields are ignored on both sides; missing
+required fields are 400. A too-old client gets 426 with the minimum version;
+the uploader stops, keeps the spool, and `doctor` reports "upgrade client".
+A client newer than the server degrades to the server's version when the
+server says so in `/config`, otherwise reports "upgrade server". Spool chunks
+are versioned on disk and re-encoded, never dropped, across client upgrades.
+
+Errors: one problem-details shape, documented per route.
+
+## Client wrapper
+
+One function taking a route definition from `shared/schemas`
+(method, path, params, request and response schemas). It validates the
+response with the compiled TypeBox check and fails loudly on mismatch. No bare
+`fetch<T>()` cast anywhere in frontend or CLI.
 
 ## Fixtures
 
