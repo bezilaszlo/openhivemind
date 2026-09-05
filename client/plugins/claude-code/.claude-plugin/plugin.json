@@ -1,0 +1,9 @@
+{
+  "name": "openhivemind",
+  "version": "0.1.0",
+  "description": "Ship every finished turn of this session to your team's Open Hivemind server, secrets scrubbed on the laptop, and search the shared history from inside the agent.",
+  "author": { "name": "Open Hivemind" },
+  "homepage": "https://github.com/openhivemind/openhivemind",
+  "license": "MIT",
+  "keywords": ["history", "transcripts", "search", "team", "self-hosted"]
+}

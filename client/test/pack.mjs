@@ -1,4 +1,4 @@
-import { mkdtemp, rm, readdir } from "node:fs/promises";
+import { mkdtemp, rm, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
@@ -38,7 +38,33 @@ try {
   } catch (error) {
     assert.equal(error.status, 2);
   }
-  console.log("Clean tarball install, executable, bundled skills and usage exit code passed.");
+  const plugin = resolve(folder, "node_modules/openhivemind/plugins/claude-code");
+  const manifest = JSON.parse(await readFile(join(plugin, ".claude-plugin/plugin.json"), "utf8"));
+  assert.equal(manifest.name, "openhivemind");
+  const hooks = JSON.parse(await readFile(join(plugin, "hooks/hooks.json"), "utf8"));
+  for (const event of ["Stop", "SessionEnd"])
+    assert.match(
+      hooks.hooks[event][0].hooks[0].command,
+      /\$\{CLAUDE_PLUGIN_ROOT\}\/dist\/cli\.js" hook$/,
+    );
+  assert.equal(hooks.hooks.Stop[0].hooks[0].async, true);
+  assert.deepEqual((await readdir(join(plugin, "skills"))).sort(), [
+    "gist",
+    "search",
+    "setup",
+    "share",
+  ]);
+  // The plugin copy runs with no node_modules of its own.
+  assert.equal(
+    execFileSync(process.execPath, [join(plugin, "dist/cli.js"), "--version"], {
+      encoding: "utf8",
+      cwd: folder,
+    }).trim(),
+    "0.1.0",
+  );
+  console.log(
+    "Clean tarball install, executable, bundled skills, plugin manifest and usage exit code passed.",
+  );
 } finally {
   await rm(folder, { recursive: true, force: true });
 }

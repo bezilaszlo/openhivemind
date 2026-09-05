@@ -130,7 +130,10 @@ Haiku runs with logging hooks in a scratch repo).
 Adapter: `Stop` (async) → `turn`; `SessionEnd` → `session-end` (spool only).
 Capture cursor: byte offset; partial trailing line left for the next read.
 Subagent files are discovered from the transcript directory on each turn and
-carry their own cursors.
+carry their own cursors; subagent capture is not implemented yet.
+
+The plugin's hook command is `node "${CLAUDE_PLUGIN_ROOT}/dist/cli.js" hook`,
+a self-contained bundle that runs without `node_modules`.
 
 ## Harness: Codex CLI
 
@@ -199,7 +202,7 @@ system owns install, update, disable and uninstall.
 
 | Harness | Path |
 | --- | --- |
-| Claude Code | Native plugin only: `/plugin marketplace add` + `/plugin install openhivemind`. Ships hooks and the four skills under the `openhivemind:` namespace. The `setup` skill runs `openhivemind setup <url>` |
+| Claude Code | Native plugin only: `/plugin marketplace add openhivemind/openhivemind` + `/plugin install openhivemind`. The marketplace manifest is `.claude-plugin/marketplace.json` at the repository root and points at `client/plugins/claude-code`, whose `dist/` and `skills/` the client build assembles. Ships hooks and the four skills under the `openhivemind:` namespace. The `setup` skill runs `openhivemind setup <url>` |
 | Codex CLI | Native plugin only, same layout. `doctor` verifies that bundled hooks fire (issues #16430 / #17532); if not, it tells the user to upgrade Codex. No config patching by us |
 | opencode | No marketplace. `openhivemind setup` appends the `openhivemind-opencode` npm name to `opencode.json` `plugin[]`, the documented install path; skills are installed as opencode command files by the same step |
 

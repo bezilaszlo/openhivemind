@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "openhivemind",
+  "owner": { "name": "Open Hivemind" },
+  "metadata": {
+    "description": "Shared, searchable history of coding-agent sessions for a team. Self-hosted.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "openhivemind",
+      "description": "Capture Claude Code sessions into your team's Open Hivemind server and search the shared history from the agent.",
+      "version": "0.1.0",
+      "author": { "name": "Open Hivemind" },
+      "source": "./client/plugins/claude-code"
+    }
+  ]
+}

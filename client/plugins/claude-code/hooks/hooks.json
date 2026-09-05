@@ -1,0 +1,27 @@
+{
+  "description": "Spools each finished assistant turn and marks the session complete when it ends.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/cli.js\" hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/dist/cli.js\" hook",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

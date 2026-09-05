@@ -10,9 +10,27 @@ Shared, searchable history of coding-agent sessions for a team. Self-hosted.
 
 **Status: MVP implementation in progress.** The workspace, shared contracts,
 privacy/search/parser tests, authenticated data routes, local/OIDC integration
-and the interactive viewer are runnable. Durable capture has unit coverage but
-is not yet connected to the packaged CLI or native harness plugins. Full
+and the interactive viewer are runnable. Claude Code capture runs end to end
+through the native plugin, the spool and the uploader; Codex CLI and opencode
+capture, the read commands and browser login are not implemented yet. Full
 release acceptance remains unfinished; this is not v1.
+
+## Capture a Claude Code session
+
+In Claude Code, `/plugin marketplace add openhivemind/openhivemind` then
+`/plugin install openhivemind`, or `claude --plugin-dir client/plugins/claude-code`
+from a clone. Then connect the laptop to your server:
+
+```
+openhivemind setup https://hivemind.example.com --token <personal access token>
+openhivemind doctor
+```
+
+`setup` accepts repeatable `--root <dir>` and `--exclude <dir>`; with no
+roots, every git checkout with an `origin` remote is captured. The token comes
+from the tokens page in the viewer, and is read from stdin when `--token` is
+omitted. Each finished turn spools locally and a detached `openhivemind sync`
+uploads it; `doctor` reports anything still pending.
 
 ## Frontend preview
 
