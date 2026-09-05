@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-label="openhivemind: One memory. Every session.">
+  <rect width="1280" height="640" fill="#FAF8F5"/>
+  <g fill="#3A8291" transform="translate(150 210) scale(3.4375)">
+    <circle cx="23" cy="5" r="2.41"/>
+    <circle cx="32" cy="5" r="2.49"/>
+    <circle cx="41" cy="5" r="2.41"/>
+    <circle cx="14" cy="14" r="2.58"/>
+    <circle cx="23" cy="14" r="2.88"/>
+    <circle cx="32" cy="14" r="3"/>
+    <circle cx="41" cy="14" r="2.88"/>
+    <circle cx="50" cy="14" r="2.58"/>
+    <circle cx="5" cy="23" r="2.41"/>
+    <circle cx="14" cy="23" r="2.88"/>
+    <circle cx="23" cy="23" r="3.28"/>
+    <circle cx="32" cy="23" r="3.48"/>
+    <circle cx="41" cy="23" r="3.28"/>
+    <circle cx="50" cy="23" r="2.88"/>
+    <circle cx="59" cy="23" r="2.41"/>
+    <circle cx="5" cy="32" r="2.49"/>
+    <circle cx="14" cy="32" r="3"/>
+    <circle cx="23" cy="32" r="3.48"/>
+    <circle cx="32" cy="32" r="3.9"/>
+    <circle cx="41" cy="32" r="3.48"/>
+    <circle cx="50" cy="32" r="3"/>
+    <circle cx="59" cy="32" r="2.49"/>
+    <circle cx="5" cy="41" r="2.41"/>
+    <circle cx="14" cy="41" r="2.88"/>
+    <circle cx="23" cy="41" r="3.28"/>
+    <circle cx="32" cy="41" r="3.48"/>
+    <circle cx="41" cy="41" r="3.28"/>
+    <circle cx="50" cy="41" r="2.88"/>
+    <circle cx="59" cy="41" r="2.41"/>
+    <circle cx="14" cy="50" r="2.58"/>
+    <circle cx="23" cy="50" r="2.88"/>
+    <circle cx="32" cy="50" r="3"/>
+    <circle cx="41" cy="50" r="2.88"/>
+    <circle cx="50" cy="50" r="2.58"/>
+    <circle cx="23" cy="59" r="2.41"/>
+    <circle cx="32" cy="59" r="2.49"/>
+    <circle cx="41" cy="59" r="2.41"/>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, -apple-system, Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+    <text x="440" y="250" font-size="17" font-weight="600" letter-spacing="4" fill="#8A867E">MANY MINDS, ONE MEMORY.</text>
+    <text x="436" y="352" font-size="92" font-weight="600" letter-spacing="-2.5" fill="#14161A">openhivemind</text>
+    <text x="440" y="416" font-size="30" font-weight="400" fill="#5C5952">One memory. Every session.</text>
+  </g>
+</svg>

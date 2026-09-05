@@ -1,0 +1,5 @@
+- `banner.svg` / `banner.png` — 1280x640 README banner (mark + wordmark + tagline on #FAF8F5); `frontend/public/mark.svg` is the bare mark (`currentColor`), `favicon.svg` the fixed-teal favicon, `logo.svg` the horizontal lockup.
+- Mark: 7x7 dot grid clipped to a circle, dot radius falling off from the centre (r = 3.9 - 1.5 * (d/28.6)^1.1 in a 64-unit viewBox), 37 dots, no strokes or gradients.
+- Accent teal: `#3A8291` (4.14:1 on #FAF8F5, 4.12:1 on #14161A — no single teal reaches 4.5:1 on both; passes 3:1 for UI/large text on each).
+- Regenerate the PNG with `rsvg-convert assets/banner.svg -o assets/banner.png` (or `npx -y @resvg/resvg-cli assets/banner.svg assets/banner.png`).
+- All assets are MIT-licensed, like the rest of the repository.

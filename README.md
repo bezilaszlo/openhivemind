@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.png" alt="Open Hivemind — one memory, every session" width="1280"></p>
+
 # Open Hivemind
 
 Shared, searchable history of coding-agent sessions for a team. Self-hosted.

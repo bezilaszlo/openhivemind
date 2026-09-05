@@ -31,7 +31,7 @@ components live in `frontend/src/components/`, routes compose them.
 
 ## Visual rules
 
-- Neutral surfaces, one blue accent, semantic tokens only (background,
+- Neutral warm surfaces, one teal accent, semantic tokens only (background,
   surface, foreground, muted, border, accent, selection, focus, destructive,
   success, warning). Light and dark from day one, system preference with a
   persisted override. Status never by colour alone.
@@ -46,6 +46,24 @@ components live in `frontend/src/components/`, routes compose them.
   states. Icon-only buttons have names. Nothing essential hides behind hover.
 - URL holds query, filters, cursor and session/message deep links. Browser
   back restores context. No transcript text or credentials in browser storage.
+
+## Brand
+
+Assets in `frontend/public/` (`mark.svg`, `logo.svg`, `favicon.svg`) and
+`assets/` (banner); geometry and licence in `assets/README.md`.
+
+- Mark: the dotted disc, `currentColor`, so it takes the foreground token.
+  Sidebar and login use `logo.svg` (mark + `openhivemind` wordmark); the
+  browser tab uses `favicon.svg`. Never recolour, outline or animate it.
+- Wordmark: lowercase `openhivemind`, system sans, weight 600, slightly tight
+  tracking. Product name in prose stays "Open Hivemind".
+- Tokens: background `#FAF8F5` light / `#14161A` dark; accent `#3A8291`.
+  The accent is about 4.1:1 on both grounds: fine for the mark, buttons, links
+  and focus rings, not for body text. Small accent-coloured text uses a
+  per-theme tint that reaches 4.5:1 (for example `#2F7487` on light).
+- Voice: eyebrow "Many minds, one memory." and tagline "One memory. Every
+  session." are the only slogans; login page shows the lockup and the tagline,
+  nothing else decorative.
 
 ## Shell
 
