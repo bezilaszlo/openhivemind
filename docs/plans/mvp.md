@@ -1,12 +1,9 @@
 # MVP implementation plan
 
-Target: ROADMAP v1. Stack per ADR 0002; identity line per ADR 0001. Reviewed
-against a Codex critique on 2026-09-05; the gated structure below replaces the
-earlier phase list.
+Target: ROADMAP v1. Stack per ADR 0002; identity line per ADR 0001.
 
-Work is organised as gates. A gate opens when its exit criteria hold, not when
-time has passed. Estimates come after Gate 1, per work packet, with separate
-discovery / implementation / integration ranges.
+Work is organised as gates. A gate opens when its exit criteria hold. How the
+work inside a gate is split up or sequenced is not prescribed here.
 
 ## Definition of done
 
@@ -196,15 +193,11 @@ spool → authenticated ingest → list and search → viewer, running from the 
   hour then online, concurrent hook + beam on the same session, SessionEnd
   drain, tenant isolation, tombstone then late retry.
 
-## Gate 4 — parallel tracks
+## Gate 4 — features
 
-Exit: all v1 features implemented against the Gate 2 contracts; each track's
-tests green on its own Postgres database; shared schemas changed only by the
-contract owner.
-
-One named owner for `packages/shared`, migration ordering, the root lockfile
-and generated artifacts. Tracks run in separate worktrees on separate branches
-once the user has agreed the workspace arrangement.
+Exit: all v1 features implemented against the Gate 2 contracts; tests green.
+Shared schemas change only through deliberate contract changes, not ad hoc
+edits from feature work.
 
 - **Server**: search grammar and ranking, regex route with budgets, changes
   feed, usage aggregation, org/member/invite routes, retention sweep (activity
@@ -229,7 +222,6 @@ once the user has agreed the workspace arrangement.
 
 Exit: definition of done met and recorded.
 
-- Merge tracks incrementally, cross-track tests after each merge.
 - Load test: onboarding burst (N developers × M sessions, chunk mix from real
   sizes), concurrent search; record corpus, concurrency, peak RSS, p95 against
   targets set before the run.
