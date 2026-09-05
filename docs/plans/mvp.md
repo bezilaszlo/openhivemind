@@ -16,6 +16,9 @@ work inside a gate is split up or sequenced is not prescribed here.
   quietly shipped as v1.
 - No raw secret in payload, spool, log or fixture; scrub regression green.
 - Tenant isolation, owner-only purge, retention and purge-retry tests green.
+- Developer control: a session in a checkout outside `roots` or under
+  `exclude` never leaves the machine (tested); a developer can delete any own
+  session from the CLI and the viewer.
 - Boolean and regex search behave per `docs/search.md`; usage matches exact
   fixtures.
 - Clean-machine install of the packed client; bounded CLI output; exit codes
@@ -223,7 +226,8 @@ spool → authenticated ingest → list and search → viewer, running from the 
   only.
 - Tests: kill the hook mid-write, kill the uploader mid-POST, offline for an
   hour then online, concurrent hook + beam on the same session, SessionEnd
-  drain, tenant isolation, tombstone then late retry.
+  drain, tenant isolation, tombstone then late retry, roots/exclude honoured
+  on resolved paths (symlink and worktree cases).
 
 ## Gate 4 — features
 
@@ -246,7 +250,8 @@ edits from feature work.
   print-only skill: the agent writes a 10–15 line brief ending with the `show`
   command for the current session; nothing is stored and no CLI subcommand
   exists, the brief reaches the hive as an ordinary assistant turn.
-- **Viewer**: search with snippets and highlight, subagent tree and agents
+- **Viewer**: delete own session (with descendants, confirm dialog), search
+  with snippets and highlight, subagent tree and agents
   cell, summary card, prompts-only and tool-calls-only toggles,
   usage page, tokens page, org admin (members, invites, roles). Playwright
   smoke: login, list, open, search, mint token, invite.

@@ -73,10 +73,16 @@ when written.
 
 ## Controls a developer has
 
-- Not capturing at all: `OPENHIVEMIND=off` in the shell.
-- Per repo: no `origin` remote means no capture; `login --root <dir>` limits
-  capture to checkouts under given folders.
+- Folders: `roots` and `exclude` lists in `~/.config/openhivemind/config.json`,
+  set by `setup --root <dir>` / `--exclude <dir>`. Empty `roots` means every
+  git checkout; otherwise only checkouts under a listed directory. `exclude`
+  wins over `roots`. Both are compared on resolved real paths, so symlinks and
+  worktrees cannot leak around them. `doctor` prints the effective lists. This
+  is the only on/off switch; no environment variable.
+- Per repo: no `origin` remote means no capture.
 - Per pattern: the ignore files above.
-- After the fact: `openhivemind purge <id>`.
+- After the fact: `openhivemind purge <id>` or the delete button on any own
+  session in the viewer. Descendants go with it; a tombstone stops late
+  retries.
 - Inspection: `openhivemind hook --dry-run < event.json` prints exactly what
   would be sent.

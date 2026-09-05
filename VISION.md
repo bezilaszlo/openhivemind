@@ -28,6 +28,8 @@ people driving the agents, across every harness they use.
 - **Secrets stay on the laptop.** Nothing leaves a machine unscrubbed, and what
   is never needed is never sent.
 - **Recall, not surveillance.** It exists to find work, not to measure people.
+- **The developer stays in control.** They choose which folders are captured
+  and can withdraw any session of their own, at any time, no admin needed.
 - **Built for agents as much as for humans.** Whatever an agent reads back must
   be bounded and composable.
 - **Open.** MIT, decisions recorded in the repo.
