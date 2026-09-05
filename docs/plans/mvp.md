@@ -95,7 +95,9 @@ never a second, hand-maintained contract.
   parent_session_id? → agent_session.id, remote, branch, branches jsonb, cwd,
   title, spawn_depth, model_explicit, models jsonb, started_at, last_activity_at,
   received_at, completed, tokens{input, output, cache_read, cache_creation})`;
-  unique (org_id, source, external_id). Owner is always the PAT's user. Parent
+  unique (org_id, source, external_id). Owner is always the PAT's user; ingest
+  into an existing session from a different user's PAT is rejected with 403
+  and reported by `doctor` (the client never retries it). Parent
   resolved deferred: a child arriving first stores `parent_external_id` and is
   linked when the parent arrives; parent must have the same org **and the
   same owner**, otherwise the child stays unlinked and `doctor` reports it;
@@ -189,15 +191,26 @@ spool → authenticated ingest → list and search → viewer, running from the 
      `doctor`.
   State is namespaced by server, org, harness and session under
   `~/.local/state/openhivemind/`.
-  **Crash recovery**: every spool chunk records the capture-cursor range it
-  covers. On hook start, if a chunk's range starts at or before the persisted
-  cursor, the cursor is advanced to that chunk's end before reading; a chunk is
-  never re-read from the transcript. Anything that still duplicates is absorbed
-  by the replay contract.
+  **Crash recovery**: per-session capture state is one record: transcript
+  cursor, next seq, source-event-id → seq map, and per-seq content hash / rev.
+  Every spool chunk carries the state *after* it (cursor range, seq range,
+  the map and hash entries it added). On hook start the persisted state is
+  reconciled with the chunks present: the newest chunk whose start matches or
+  precedes the persisted cursor wins, and cursor, next seq, map and hashes are
+  restored from it before reading. A chunk is never re-read from the
+  transcript, and seqs after a recovered chunk continue from its seq range.
+  State record and chunk are written atomically (temp + rename), chunk first,
+  so a crash between them is exactly the case above. Anything that still
+  duplicates is absorbed by the replay contract.
   **Storage full**: the spool has a hard cap per server. At the cap capture
-  pauses for new chunks (the cursor stays put, so nothing is lost) and
-  `doctor` reports "capture paused, N chunks pending"; only acknowledged
-  chunks are ever deleted. Disk-full writes fail the hook cleanly without
+  pauses for new chunks (the cursor stays put) and the session is marked
+  paused; `doctor` reports "capture paused, N chunks pending"; only
+  acknowledged chunks are ever deleted. Resuming is a capture step, not just an
+  upload: after a drain frees space, the uploader, `sync` and `doctor` re-run
+  capture on every paused session whose transcript still exists. If the
+  transcript is gone (harness cleanup, retention) the gap is permanent; the
+  session is marked `gap` in its spool state and `doctor` reports it. "Nothing
+  is lost" holds only while the transcript remains on disk. Disk-full writes fail the hook cleanly without
   moving the cursor. Truncated or replaced transcripts (size below cursor,
   changed inode) restart the cursor at 0 and rely on replay. Ambiguous HTTP
   outcomes (timeout after send) are resolved by the idempotent replay
