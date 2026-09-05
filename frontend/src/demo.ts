@@ -78,7 +78,7 @@ export const demoSessions: Session[] = scenarios.map(
     started_at: new Date(now - (index + 1) * 3700000).toISOString(),
     last_activity_at: new Date(now - index * 2700000 - 300000).toISOString(),
     received_at: new Date(now - index * 2700000).toISOString(),
-    completed: true,
+    completed: index > 1,
     spawn_depth: 0,
     models: [
       source === "codex" ? "gpt-5.4" : source === "opencode" ? "glm-4.7" : "claude-sonnet-4-6",
