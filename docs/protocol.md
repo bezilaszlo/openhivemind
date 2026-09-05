@@ -146,6 +146,27 @@ Delivered relative to Claude Code: per-idle rather than per-turn capture,
 usage per message, subagents, compaction, title. Not delivered: nothing in the
 MVP scope.
 
+## Installation
+
+Capture and skills are installed together; a harness without capture is the
+exception (`setup --read-only`), not the default. The client never edits a
+harness's hooks or settings files: where the harness has a plugin system, that
+system owns install, update, disable and uninstall.
+
+| Harness | Path |
+| --- | --- |
+| Claude Code | Native plugin only: `/plugin marketplace add` + `/plugin install openhivemind`. Ships hooks and the four skills under the `openhivemind:` namespace. The `setup` skill runs `openhivemind setup <url>` |
+| Codex CLI | Native plugin only, same layout. `doctor` verifies that bundled hooks fire (issues #16430 / #17532); if not, it tells the user to upgrade Codex. No config patching by us |
+| opencode | No marketplace. `openhivemind setup` appends the `openhivemind-opencode` npm name to `opencode.json` `plugin[]`, the documented install path; skills are installed as opencode command files by the same step |
+
+`openhivemind setup <url>`: browser login, PAT stored, `doctor`, and the
+opencode entry above. Nothing else. Flags: `--read-only` (no capture),
+`--harness <name>`.
+
+Skills alone are also publishable as an Agent Skills repo (`npx skills add
+openhivemind/openhivemind`, skills.sh) for editors we do not capture from.
+Optional extra, never the primary path: it installs no hooks.
+
 ## Fixtures
 
 `fixtures/<harness>/` holds one synthetic transcript per harness covering every

@@ -203,8 +203,9 @@ edits from feature work.
   feed, usage aggregation, org/member/invite routes, retention sweep (activity
   age, not receipt time; rejects expired historic ingest; batched deletes;
   tombstone lifetime), indexes from measured query plans on realistic data.
-- **Client**: Codex and opencode parsers from fixtures; `login`, `doctor`,
-  `sync`, `install --harness`; read commands `search`, `sessions`, `today`,
+- **Client**: Codex and opencode parsers from fixtures; `setup` (login,
+  `doctor`, opencode plugin entry; see `docs/protocol.md` § Installation),
+  `login`, `doctor`, `sync`; read commands `search`, `sessions`, `today`,
   `fetch`, `show`, `tail` (changes cursor), `usage`, `share`, `purge`, `local`,
   `beam` (discovery, resume, shared identities with live capture, bounded
   concurrency, permanent-error handling). Each command: source of data,
