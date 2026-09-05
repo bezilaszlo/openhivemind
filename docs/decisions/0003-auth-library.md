@@ -51,6 +51,9 @@ authorization and the "first user creates the org" bootstrap as our own code.
    so upgrade diffs stay readable. The library never validates the live DB;
    its config is the runtime source of truth, so config and schema change
    together in one commit.
+10. **Watch the roadmap.** If generic self-hosted OIDC/org support degrades,
+    the exit is hand-rolled local auth + `openid-client` v6 behind the same
+    provider interface; ~2–3x the wiring effort, small dependency chain.
 11. **Build the CLI from the pinned source.** `@better-auth/cli@latest` on npm
     lagged at 1.4.21 while the library was 1.7.2 and generated the pre-1.7
     account model without `issuer`. Generation runs from the monorepo tag
@@ -59,9 +62,6 @@ authorization and the "first user creates the org" bootstrap as our own code.
     issuer+subject keying exists, nullable email is deferred to their v2.
     Providers that withhold email are unsupported in MVP; documented in
     `self-host.md`.
-10. **Watch the roadmap.** If generic self-hosted OIDC/org support degrades,
-    the exit is hand-rolled local auth + `openid-client` v6 behind the same
-    provider interface; ~2–3x the wiring effort, small dependency chain.
 
 Known wart: `better-auth` transitively installs the `mongodb` driver through
 its Mongo adapter. Cosmetic; noted so nobody reads it as a requirement.
