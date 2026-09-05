@@ -1,4 +1,4 @@
-import { mkdir, readFile, open, readdir, stat, realpath, rm } from "node:fs/promises";
+import { mkdir, readFile, open, readdir, stat, realpath } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { homedir } from "node:os";
 import { join, relative, isAbsolute, resolve } from "node:path";
@@ -27,7 +27,7 @@ export interface Event {
   completed?: boolean;
   parentId?: string;
 }
-interface State {
+export interface State {
   generation: number;
   offset: number;
   inode: number;
@@ -42,9 +42,10 @@ interface State {
   gap?: boolean;
   event: Event;
 }
-interface Envelope {
+export interface Envelope {
   chunks: Chunk[];
   after: State;
+  attempts?: number;
 }
 function inside(path: string, root: string) {
   const rel = relative(root, path);
@@ -83,7 +84,7 @@ async function patterns(cwd: string) {
   }
   return result;
 }
-async function readState(folder: string, event: Event): Promise<State> {
+export async function readState(folder: string, event: Event): Promise<State> {
   try {
     return JSON.parse(await readFile(join(folder, "state.json"), "utf8")) as State;
   } catch (error) {
@@ -286,95 +287,4 @@ export async function spoolBytes(root: string): Promise<number> {
       total += (await stat(join(file.parentPath, file.name))).size;
   }
   return total;
-}
-export async function drain(
-  config: Config,
-  resumed = false,
-): Promise<{ sent: number; pending: number; errors: string[] }> {
-  const root = stateRoot(config);
-  await mkdir(root, { recursive: true, mode: 0o700 });
-  let sent = 0;
-  const errors: string[] = [];
-  const files = (await readdir(root, { recursive: true, withFileTypes: true }))
-    .filter((file) => file.isFile() && file.name.endsWith(".batch.json"))
-    .sort((a, b) => a.name.localeCompare(b.name));
-  for (const item of files) {
-    const path = join(item.parentPath, item.name);
-    let release: (() => Promise<void>) | undefined;
-    try {
-      release = await lockfile.lock(item.parentPath, { stale: 10000, update: 3000, retries: 0 });
-      const batch = JSON.parse(await readFile(path, "utf8")) as { chunks: Chunk[]; after: State };
-      let completed = true;
-      if (!(await allowed(batch.after.event.cwd, config))) {
-        errors.push("excluded pending session");
-        continue;
-      }
-      // Reconcile before acknowledgements remove the only recovery record.
-      const state = await readState(item.parentPath, batch.after.event);
-      if (batch.after.generation > state.generation)
-        await atomic(join(item.parentPath, "state.json"), batch.after);
-      for (const chunk of batch.chunks) {
-        const response = await fetch(
-          config.server.replace(/\/$/, "") +
-            "/api/v1/ingest/sessions/" +
-            encodeURIComponent(batch.after.event.sessionId),
-          {
-            method: "POST",
-            headers: {
-              authorization: `Bearer ${config.token}`,
-              "content-type": "application/json",
-              "x-openhivemind-protocol": "1",
-            },
-            body: JSON.stringify(chunk),
-            signal: AbortSignal.timeout(10000),
-          },
-        );
-        if (response.status === 410) {
-          break;
-        }
-        if (response.status !== 202) {
-          errors.push(`HTTP ${response.status}`);
-          completed = false;
-          break;
-        }
-        sent++;
-      }
-      if (completed) await rm(path);
-    } catch (error) {
-      errors.push(
-        error && typeof error === "object" && "code" in error
-          ? String(error.code)
-          : "upload failed",
-      );
-    } finally {
-      await release?.();
-    }
-  }
-  const states = (await readdir(root, { recursive: true, withFileTypes: true })).filter(
-    (file) => file.isFile() && file.name === "state.json",
-  );
-  for (const item of states) {
-    const path = join(item.parentPath, item.name);
-    const state = JSON.parse(await readFile(path, "utf8")) as State;
-    if (state.paused) {
-      try {
-        await capture(state.event, config);
-      } catch (error) {
-        if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
-          await atomic(path, { ...state, gap: true });
-        else errors.push("paused capture failed");
-      }
-    }
-  }
-  if (!resumed && states.length) {
-    const next = await drain(config, true);
-    return { sent: sent + next.sent, pending: next.pending, errors: [...errors, ...next.errors] };
-  }
-  return {
-    sent,
-    pending: (await readdir(root, { recursive: true })).filter((name) =>
-      name.endsWith(".batch.json"),
-    ).length,
-    errors,
-  };
 }

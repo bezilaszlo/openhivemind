@@ -19,6 +19,8 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     detail: string,
+    // Backpressure is part of the contract: the caller has to read Retry-After.
+    public headers: Headers = new Headers(),
   ) {
     super(detail);
   }
@@ -68,7 +70,7 @@ export function createApi(base: string, token?: string, transport: typeof fetch 
         )
           detail = value.detail;
       } catch {}
-      throw new ApiError(response.status, detail);
+      throw new ApiError(response.status, detail, response.headers);
     }
     return validate(definition.response, await response.json());
   };

@@ -3,13 +3,8 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createApi, routes, ignorePatterns, PROTOCOL_VERSION } from "@openhivemind/shared";
 import { configPath, loadConfig, type Config } from "../config";
-import { stateHome, stateRoot } from "../state";
+import { stateHome, stateRoot, upgradePath, type Upgrade } from "../state";
 import { spoolBytes } from "../capture";
-export interface Upgrade {
-  detail: string;
-  at: string;
-}
-export const upgradePath = (config: Config) => join(stateRoot(config), "upgrade.json");
 interface Spool {
   sessions: number;
   pending: number;

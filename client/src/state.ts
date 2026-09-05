@@ -6,6 +6,13 @@ export const digest = (text: string) => createHash("sha256").update(text).digest
 export const stateHome = () => join(homedir(), ".local/state/openhivemind");
 export const stateRoot = (config: { server: string; org: string }) =>
   join(stateHome(), digest(config.server + "/" + config.org).slice(0, 24));
+export interface Upgrade {
+  detail: string;
+  at: string;
+}
+// Set by the uploader when the server refuses this protocol version; cleared by a client upgrade.
+export const upgradePath = (config: { server: string; org: string }) =>
+  join(stateRoot(config), "upgrade.json");
 export async function atomic(path: string, value: unknown) {
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   const temp = path + "." + randomUUID() + ".tmp";

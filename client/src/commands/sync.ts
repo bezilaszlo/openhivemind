@@ -1,6 +1,6 @@
 import { mkdir } from "node:fs/promises";
 import lockfile from "proper-lockfile";
-import { drain } from "../capture";
+import { drain, type DrainOptions } from "../upload";
 import type { Config } from "../config";
 import { stateRoot } from "../state";
 const uploaderLock = { stale: 60000, update: 10000, retries: 0 };
@@ -10,7 +10,10 @@ export async function uploaderRunning(config: Config): Promise<boolean> {
   await mkdir(root, { recursive: true, mode: 0o700 });
   return lockfile.check(root, uploaderLock);
 }
-export async function sync(config: Config): Promise<{
+export async function sync(
+  config: Config,
+  options: DrainOptions = {},
+): Promise<{
   sent: number;
   pending: number;
   errors: string[];
@@ -25,7 +28,7 @@ export async function sync(config: Config): Promise<{
     return { sent: 0, pending: 0, errors: [], skipped: true };
   }
   try {
-    return await drain(config);
+    return await drain(config, options);
   } finally {
     await release();
   }
