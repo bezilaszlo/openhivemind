@@ -26,6 +26,62 @@ work inside a gate is split up or sequenced is not prescribed here.
 - One `docker compose up` from the repo root brings up app + Postgres.
 - Load test per ADR 0002 recorded: corpus, concurrency, peak RSS, p95.
 
+## Repository layout
+
+Four workspace packages, one level of subdirectories. Create directories when
+a gate needs them, not as empty scaffolding.
+
+```text
+openhivemind/
+├── AGENTS.md, README.md, VISION.md, ROADMAP.md, LICENSE
+├── package.json, pnpm-workspace.yaml, .nvmrc, tsconfig.base.json, lefthook.yml
+├── compose.yml, Dockerfile     # app + Postgres; entrypoint runs migrate then serve
+├── .github/workflows/          # check, integration, pack, release
+├── shared/src/
+│   ├── schemas/                # TypeBox API + domain schemas; the contract
+│   ├── parsers/                # transcript → normalised messages, per harness
+│   ├── privacy/                # scrub rules, ignore patterns
+│   ├── project/                # remote normalisation, project key
+│   └── search/                 # query grammar → AST (SQL stays in backend)
+├── backend/
+│   ├── src/
+│   │   ├── app.ts, server.ts   # build app / start, readiness, shutdown
+│   │   ├── routes/             # one file per route group, imports shared schemas
+│   │   ├── auth/               # Better Auth bridge, PATs, auth context
+│   │   ├── db/                 # Drizzle schema (incl. auth), retention, migrations/
+│   │   └── search.ts, ingest.ts, …   # services as flat modules
+│   ├── openapi.json            # generated, drift-checked
+│   └── test/                   # integration against real Postgres, load workload
+├── frontend/
+│   ├── src/routes/, src/components/, src/api/generated/
+│   └── e2e/                    # Playwright smoke
+├── client/
+│   ├── src/
+│   │   ├── commands/           # one file per CLI command
+│   │   ├── harnesses/          # Claude Code, Codex, opencode adapters
+│   │   └── capture.ts, spool.ts, upload.ts, api.ts, config.ts
+│   ├── plugins/                # native plugin sources: claude-code/, codex/, opencode/
+│   ├── skills/                 # search, share, gist, setup (canonical copies)
+│   └── test/                   # crash/offline replay, CLI acceptance, pack check
+├── fixtures/                   # claude-code/, codex/, opencode/, scrub/ + goldens
+└── docs/                       # decisions/, plans/, protocol, privacy, search, self-host
+```
+
+Rules:
+
+- Apps depend on `shared`; never on each other. `shared` has no filesystem,
+  network, database or process side effects.
+- Contract path: `shared/schemas` → backend routes → `backend/openapi.json` →
+  `frontend/src/api/generated/`. Generated files are drift-checked in CI and
+  never hand-edited.
+- Tests: unit tests sit beside their module as `*.test.ts`. Package `test/`
+  holds integration and acceptance scenarios that need Postgres, a temp HOME
+  or a packed tarball. `frontend/e2e/` is Playwright. Pack and load are CI
+  jobs over those directories, not extra trees.
+- Plugin directories are packaging sources; assembly copies the built client
+  and the canonical skills into each harness's native layout (opencode command
+  files derived from the same skills). Runtime state never lives in the repo.
+
 ## Gate 1 — foundation and discovery
 
 Exit: workspace and gates run green in CI; harness matrix and fixtures
