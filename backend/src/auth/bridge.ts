@@ -157,8 +157,18 @@ export async function mountAuth(app: FastifyInstance, pool: pg.Pool, auth: Auth,
         if (cookies.length) reply.header("set-cookie", cookies);
         const text = await response.text();
         // Better Auth answers errors as {message, code}; the client reads problem+json {detail}.
-        if (!response.ok && response.headers.get("content-type")?.includes("application/json")) {
-          const message = (JSON.parse(text) as { message?: unknown }).message;
+        // Only a real error body is rewrapped: `response.ok` is false for a redirect too, and the
+        // OIDC callback redirects with an empty body under a JSON content type.
+        if (
+          response.status >= 400 &&
+          response.headers.get("content-type")?.includes("application/json")
+        ) {
+          let message: unknown;
+          try {
+            message = (JSON.parse(text) as { message?: unknown }).message;
+          } catch {
+            message = undefined;
+          }
           if (typeof message === "string")
             return reply.type("application/problem+json").send({
               type: "about:blank",
