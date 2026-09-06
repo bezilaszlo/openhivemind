@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+Fixed session titles landing on Claude Code's injected wrapper text (the
+`local-command-caveat`, `/command` echo, or a `system-reminder` block stapled
+ahead of a turn, e.g. every session that opens with `/clear`) instead of the
+first prompt the developer actually typed. The Claude Code parser branch in
+`shared/src/parsers/index.ts` now drops a prompt block that is nothing but
+one of these wrappers, and strips a wrapper prefix that precedes real typed
+text in the same block, mirroring how the Codex branch already drops its
+injected `AGENTS.md`/environment blocks. No fixture golden changed; none of
+the committed captures happened to contain one of these wrappers.
+
 Fixed a login/API failure when a browser reached the dev stack by a different
 loopback spelling than the configured `APP_URL` (e.g. `localhost` vs.
 `127.0.0.1`): Better Auth's `trustedOrigins` and the app's own origin checks

@@ -10,6 +10,25 @@ const str = (value: unknown, fallback = ""): string =>
 const num = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+// Claude Code stitches a caveat, a /command echo, or a system reminder ahead of a user turn;
+// none of it is something the developer typed, so it must never become a prompt, a title, or
+// search noise. A real prompt can still follow one of these in the same block (a slash command's
+// own question, or a reminder stapled ahead of typed text), so only the matched prefix is
+// dropped, never the block that still has real text after it.
+const INJECTED_PROMPT_WRAPPER = new RegExp(
+  "^(?:" +
+    [
+      "<local-command-caveat>[\\s\\S]*?</local-command-caveat>",
+      "<command-name>[\\s\\S]*?</command-name>\\s*<command-message>[\\s\\S]*?</command-message>\\s*<command-args>[\\s\\S]*?</command-args>",
+      "<system-reminder>[\\s\\S]*?</system-reminder>",
+    ].join("|") +
+    ")\\s*",
+);
+function stripInjectedPrompt(text: string): string {
+  let result = text;
+  while (INJECTED_PROMPT_WRAPPER.test(result)) result = result.replace(INJECTED_PROMPT_WRAPPER, "");
+  return result;
+}
 export type ParsedMessage = Omit<Message, "seq" | "rev"> & { source_event_id: string };
 export interface Parsed {
   messages: ParsedMessage[];
@@ -73,13 +92,18 @@ export function parseRecords(
       if (data.type !== "user" && data.type !== "assistant") return;
       model = str(message.model) || model;
       const kind = data.isCompactSummary ? "summary" : data.type === "user" ? "prompt" : "reply";
+      const clean = (text: string) => (kind === "prompt" ? stripInjectedPrompt(text) : text);
       const before = messages.length;
-      if (typeof message.content === "string") emit(kind, message.content, "text");
-      else
+      if (typeof message.content === "string") {
+        const text = clean(message.content);
+        if (text) emit(kind, text, "text");
+      } else
         list(message.content).forEach((value, blockIndex) => {
           const block = record(value);
-          if (block.type === "text") emit(kind, str(block.text), String(blockIndex));
-          else if (block.type === "tool_use")
+          if (block.type === "text") {
+            const text = clean(str(block.text));
+            if (text) emit(kind, text, String(blockIndex));
+          } else if (block.type === "tool_use")
             emit(
               "tool_call",
               toolSummary(str(block.name), block.input),
