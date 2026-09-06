@@ -14,7 +14,7 @@ export type ParsedMessage = Omit<Message, "seq" | "rev"> & { source_event_id: st
 export interface Parsed {
   messages: ParsedMessage[];
   meta: Partial<Meta>;
-  state: { model?: string; seenUsage: string[] };
+  state: { model?: string; seenUsage: string[]; start?: number };
 }
 export function parseRecords(
   source: Meta["source"],
@@ -24,11 +24,14 @@ export function parseRecords(
     model?: string;
     seenUsage: string[];
     indexOffset: number;
+    start?: number;
   },
 ): Parsed {
   const messages: ParsedMessage[] = previous?.messages.map((message) => ({ ...message })) ?? [];
   const meta: Partial<Meta> = {};
   let model: string | undefined = previous?.model;
+  // Carried in capture state: the inherited prefix of a child rollout can outlast one read window.
+  let codexStart = previous?.start ?? 0;
   const usageSeen = new Set<string>(previous?.seenUsage);
   rows.forEach((row, index) => {
     const data = record(row),
@@ -101,7 +104,12 @@ export function parseRecords(
         usageSeen.add(responseId);
       }
     } else if (source === "codex") {
+      // A subagent rollout starts with the parent's history and session_meta copied in; only
+      // records from `subagent_history_start_ordinal` on belong to the child.
+      if (typeof data.ordinal === "number" && data.ordinal < codexStart) return;
       if (data.type === "session_meta") {
+        if (typeof payload.subagent_history_start_ordinal === "number")
+          codexStart = payload.subagent_history_start_ordinal;
         meta.cwd = str(payload.cwd);
         meta.version = str(payload.cli_version);
         meta.branch = str(record(payload.git).branch);
@@ -135,12 +143,21 @@ export function parseRecords(
         return;
       }
       if (data.type !== "response_item") return;
-      if (payload.type === "message" && (payload.role === "user" || payload.role === "assistant"))
+      if (payload.type === "message" && (payload.role === "user" || payload.role === "assistant")) {
+        // Codex opens a thread with AGENTS.md, skills, plugin and environment context as user
+        // messages; `content_item_kinds` marks which block the developer actually typed. Once
+        // that array exists every block has to earn its place, including one past its end.
+        const labels = record(
+          payload.internal_chat_message_metadata_passthrough,
+        ).content_item_kinds;
+        const kinds = Array.isArray(labels) ? labels : undefined;
         list(payload.content).forEach((value, blockIndex) => {
           const block = record(value);
+          if (payload.role === "user" && kinds && kinds[blockIndex] !== "user.text") return;
           if (block.type === "input_text" || block.type === "output_text")
             emit(payload.role === "user" ? "prompt" : "reply", str(block.text), String(blockIndex));
         });
+      }
       if (payload.type === "function_call" || payload.type === "custom_tool_call")
         emit(
           "tool_call",
@@ -180,5 +197,13 @@ export function parseRecords(
         };
     }
   });
-  return { messages, meta, state: { ...(model ? { model } : {}), seenUsage: [...usageSeen] } };
+  return {
+    messages,
+    meta,
+    state: {
+      ...(model ? { model } : {}),
+      ...(codexStart ? { start: codexStart } : {}),
+      seenUsage: [...usageSeen],
+    },
+  };
 }

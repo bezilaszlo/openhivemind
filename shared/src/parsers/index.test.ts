@@ -120,3 +120,83 @@ it("counts distinct provider responses in one Codex turn, including tool-only re
     { input: 20, cache_read: 90, output: 5, cache_creation: 0 },
   ]);
 });
+
+it("keeps only the Codex user block the developer typed", () => {
+  const result = parseRecords("codex", [
+    {
+      type: "response_item",
+      ordinal: 1,
+      payload: {
+        type: "message",
+        role: "user",
+        content: [
+          { type: "input_text", text: "# AGENTS.md instructions" },
+          { type: "input_text", text: "<environment_context>" },
+        ],
+        internal_chat_message_metadata_passthrough: {
+          content_item_kinds: ["agents_md.instructions", "environments.environment_context"],
+        },
+      },
+    },
+    {
+      type: "response_item",
+      ordinal: 2,
+      payload: {
+        type: "message",
+        role: "user",
+        content: [{ type: "input_text", text: "do the thing" }],
+        internal_chat_message_metadata_passthrough: { content_item_kinds: ["user.text"] },
+      },
+    },
+    {
+      type: "response_item",
+      ordinal: 3,
+      payload: { type: "message", role: "user", content: [{ type: "input_text", text: "older" }] },
+    },
+    {
+      type: "response_item",
+      ordinal: 4,
+      payload: {
+        type: "message",
+        role: "user",
+        content: [
+          { type: "input_text", text: "typed" },
+          { type: "input_text", text: "<environment_context>" },
+        ],
+        internal_chat_message_metadata_passthrough: { content_item_kinds: ["user.text"] },
+      },
+    },
+  ]);
+  expect(result.messages.map((item) => item.text)).toEqual(["do the thing", "older", "typed"]);
+});
+
+it("skips the parent history a Codex subagent rollout opens with", () => {
+  const result = parseRecords("codex", [
+    {
+      type: "session_meta",
+      ordinal: 0,
+      payload: { id: "child", session_id: "parent", subagent_history_start_ordinal: 3 },
+    },
+    { type: "session_meta", ordinal: 1, payload: { id: "parent", session_id: "parent" } },
+    {
+      type: "response_item",
+      ordinal: 2,
+      payload: {
+        type: "message",
+        role: "assistant",
+        content: [{ type: "output_text", text: "inherited" }],
+      },
+    },
+    {
+      type: "response_item",
+      ordinal: 3,
+      payload: {
+        type: "message",
+        role: "assistant",
+        content: [{ type: "output_text", text: "own" }],
+      },
+    },
+  ]);
+  expect(result.messages.map((item) => item.text)).toEqual(["own"]);
+  expect(result.meta.parent_external_id).toBe("parent");
+});

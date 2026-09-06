@@ -6,6 +6,7 @@ import { doctor } from "./doctor";
 import { login } from "./login";
 import { loadConfig, configPath } from "../config";
 import { atomic, upgradePath } from "../state";
+import { sessionFolder } from "../capture";
 const server = "http://server.test";
 let home: string, real: string;
 let authorized = true;
@@ -71,4 +72,22 @@ it("names an invalid ignore line and a recorded upgrade requirement", async () =
   expect(report.ok).toBe(false);
   expect(report.lines.join("\n")).toContain("line 2");
   expect(report.lines.join("\n")).toContain("upgrade client");
+});
+it("reports the Codex plugin and whether its bundled hooks have fired", async () => {
+  const config = await signIn();
+  const codexHome = join(home, "codex");
+  await mkdir(codexHome);
+  vi.stubEnv("CODEX_HOME", codexHome);
+  expect((await doctor()).lines.join("\n")).toContain("Codex CLI plugin: not installed");
+  await writeFile(
+    join(codexHome, "config.toml"),
+    '[marketplaces.openhivemind]\nsource_type = "local"\n\n[plugins."openhivemind@openhivemind"]\nenabled = true\n',
+  );
+  expect((await doctor()).lines.join("\n")).toContain("run only once trusted from the Codex TUI");
+  await atomic(join(sessionFolder(config, "codex", "thread-1"), "state.json"), {
+    event: { sessionId: "thread-1", source: "codex" },
+  });
+  const report = await doctor();
+  expect(report.ok).toBe(true);
+  expect(report.lines.join("\n")).toContain("Codex CLI plugin: installed, bundled hooks fire");
 });

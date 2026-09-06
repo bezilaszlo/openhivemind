@@ -1,0 +1,27 @@
+{
+  "description": "Spools each finished assistant turn and marks the thread complete when it ends.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/dist/cli.js\" hook",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "openhivemind",
+  "interface": { "displayName": "Open Hivemind" },
+  "plugins": [
+    {
+      "name": "openhivemind",
+      "source": { "source": "local", "path": "./client/plugins/codex" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

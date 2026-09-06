@@ -127,3 +127,48 @@ it("fails closed when an ignore pattern is invalid", async () => {
   await writeFile(join(repo, ".openhivemind-ignore"), "[");
   await expect(capture(event, config)).rejects.toThrow("line 1");
 });
+it("keeps a Codex subagent's inherited prefix out of the child across read windows", async () => {
+  const record = (ordinal: number, role: string, text: string) =>
+    JSON.stringify({
+      type: "response_item",
+      ordinal,
+      timestamp: new Date().toISOString(),
+      payload: {
+        type: "message",
+        id: `m-${ordinal}`,
+        role,
+        content: [{ type: "input_text", text }],
+        internal_chat_message_metadata_passthrough: { content_item_kinds: ["user.text"] },
+      },
+    }) + "\n";
+  const child: Event = {
+    sessionId: "child-1",
+    source: "codex",
+    cwd: repo,
+    transcriptPath: join(folder, "rollout-child.jsonl"),
+    parentId: "parent-1",
+  };
+  const meta =
+    JSON.stringify({
+      type: "session_meta",
+      ordinal: 0,
+      timestamp: new Date().toISOString(),
+      payload: {
+        id: "child-1",
+        session_id: "parent-1",
+        cwd: repo,
+        subagent_history_start_ordinal: 4,
+      },
+    }) + "\n";
+  const inherited = [1, 2, 3].map((ordinal) => record(ordinal, "user", `inherited ${ordinal}`));
+  await writeFile(child.transcriptPath, meta + inherited.join(""));
+  // A window that ends inside the inherited prefix: the next read starts with no session_meta.
+  const window = meta.length + inherited[0]!.length;
+  await capture(child, config, { readWindow: window });
+  await appendFile(child.transcriptPath, record(4, "user", "the child's own task"));
+  for (let read = 0; read < 5; read++) await capture(child, config, { readWindow: window });
+  const messages = (await batches()).flatMap((batch) =>
+    batch.chunks.flatMap((chunk: { messages: { text: string }[] }) => chunk.messages),
+  );
+  expect(messages.map((message) => message.text)).toEqual(["the child's own task"]);
+});

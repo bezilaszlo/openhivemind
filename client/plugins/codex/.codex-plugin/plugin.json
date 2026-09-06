@@ -1,0 +1,18 @@
+{
+  "name": "openhivemind",
+  "version": "0.1.0",
+  "description": "Ship every finished turn of this thread to your team's Open Hivemind server, secrets scrubbed on the laptop, and search the shared history from inside the agent.",
+  "author": { "name": "Open Hivemind" },
+  "homepage": "https://github.com/openhivemind/openhivemind",
+  "license": "MIT",
+  "keywords": ["history", "transcripts", "search", "team", "self-hosted"],
+  "interface": {
+    "displayName": "Open Hivemind",
+    "shortDescription": "Shared, searchable history of your team's coding-agent sessions",
+    "longDescription": "Captures each finished turn of a Codex thread, scrubs secrets on the laptop, and ships it to your self-hosted Open Hivemind server, where the whole team can search every session.",
+    "developerName": "Open Hivemind",
+    "category": "Productivity",
+    "capabilities": ["Write"],
+    "defaultPrompt": ["Search the hive for how we set up Postgres migrations."]
+  }
+}

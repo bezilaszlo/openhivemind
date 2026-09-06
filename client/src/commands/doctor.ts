@@ -11,12 +11,21 @@ interface Spool {
   dead: number;
   paused: string[];
   gap: string[];
+  sources: string[];
   bytes: number;
   last?: string;
 }
 async function spoolReport(config: Config): Promise<Spool> {
   const root = stateRoot(config);
-  const report: Spool = { sessions: 0, pending: 0, dead: 0, paused: [], gap: [], bytes: 0 };
+  const report: Spool = {
+    sessions: 0,
+    pending: 0,
+    dead: 0,
+    paused: [],
+    gap: [],
+    sources: [],
+    bytes: 0,
+  };
   const files = await readdir(root, { recursive: true, withFileTypes: true }).catch(() => []);
   for (const file of files) {
     if (!file.isFile()) continue;
@@ -28,8 +37,9 @@ async function spoolReport(config: Config): Promise<Spool> {
       const state = JSON.parse(await readFile(path, "utf8")) as {
         paused?: boolean;
         gap?: boolean;
-        event: { sessionId: string };
+        event: { sessionId: string; source: string };
       };
+      if (!report.sources.includes(state.event.source)) report.sources.push(state.event.source);
       if (state.paused) report.paused.push(state.event.sessionId);
       if (state.gap) report.gap.push(state.event.sessionId);
       const when = (await stat(path)).mtime.toISOString();
@@ -59,6 +69,13 @@ async function pluginInstalled(): Promise<boolean> {
   ).catch(() => "{}");
   const value = JSON.parse(installed) as { plugins?: Record<string, unknown> };
   return Object.keys(value.plugins ?? {}).some((name) => name.startsWith("openhivemind@"));
+}
+// Codex records an installed plugin as a `[plugins."<name>@<marketplace>"]` section in its config.
+async function codexPluginEnabled(): Promise<boolean> {
+  const home = process.env["CODEX_HOME"] || join(homedir(), ".codex");
+  const config = await readFile(join(home, "config.toml"), "utf8").catch(() => "");
+  const section = config.split(/^\[/m).find((part) => part.startsWith('plugins."openhivemind@'));
+  return Boolean(section) && !/^enabled\s*=\s*false/m.test(section!);
 }
 // One bounded line per check; problems make the command exit non-zero.
 export async function doctor(): Promise<{ lines: string[]; ok: boolean }> {
@@ -100,11 +117,22 @@ export async function doctor(): Promise<{ lines: string[]; ok: boolean }> {
   lines.push(`Roots: ${config.roots.length ? config.roots.join(", ") : "every git checkout"}`);
   lines.push(`Exclude: ${config.exclude.length ? config.exclude.join(", ") : "none"}`);
   if (config.readOnly) lines.push("Capture: disabled by read-only setup");
+  const spool = await spoolReport(config);
   lines.push(
     `Claude Code plugin: ${(await pluginInstalled()) ? "installed" : "not installed (run /plugin marketplace add openhivemind/openhivemind, then /plugin install openhivemind)"}`,
   );
+  // Codex discovers the plugin's hooks but runs them only once they are trusted, and skips
+  // untrusted ones in silence (issues #16430 / #17532), so a plugin that never fired matters.
+  lines.push(
+    `Codex CLI plugin: ${
+      !(await codexPluginEnabled())
+        ? "not installed (run codex plugin marketplace add openhivemind/openhivemind, then codex plugin add openhivemind@openhivemind)"
+        : spool.sources.includes("codex")
+          ? "installed, bundled hooks fire"
+          : "installed, but no turn has been captured yet; its hooks run only once trusted from the Codex TUI"
+    }`,
+  );
   for (const problem of await ignoreProblems()) fail(problem);
-  const spool = await spoolReport(config);
   lines.push(
     `Capture: ${spool.sessions} session(s), last ${spool.last ?? "never"}; spool ${spool.bytes} bytes in ${spool.pending} chunk file(s)`,
   );

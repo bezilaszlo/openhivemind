@@ -96,7 +96,7 @@
       "internal_chat_message_metadata_passthrough": {
         "turn_id": "fixture-id-4",
         "create_time": 1788610967.467664,
-        "content_item_kinds": ["[removed]", "[removed]"]
+        "content_item_kinds": ["agents_md.instructions", "environments.environment_context"]
       }
     }
   },
@@ -341,7 +341,7 @@
       "internal_chat_message_metadata_passthrough": {
         "turn_id": "fixture-id-4",
         "create_time": 1788610967.5248394,
-        "content_item_kinds": ["[removed]"]
+        "content_item_kinds": ["user.text"]
       }
     }
   },
@@ -1062,7 +1062,7 @@
       "internal_chat_message_metadata_passthrough": {
         "turn_id": "fixture-id-21",
         "create_time": 1788610989.6828642,
-        "content_item_kinds": ["[removed]"]
+        "content_item_kinds": ["user.text"]
       }
     }
   },

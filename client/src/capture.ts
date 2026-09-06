@@ -40,6 +40,7 @@ export interface State {
   pending: ParsedMessage[];
   seenUsage: string[];
   model?: string;
+  start?: number;
   meta?: Meta;
   paused?: boolean;
   gap?: boolean;
@@ -108,10 +109,21 @@ export async function readState(folder: string, event: Event): Promise<State> {
 }
 export const sessionFolder = (config: Config, source: string, sessionId: string) =>
   join(stateRoot(config), source, digest(sessionId));
+// Statuses capture() returns before ever touching the spool; the hook and beam both use this
+// to decide whether it is worth starting an uploader or capturing this event's children.
+const UNSPOOLED_STATUSES = new Set(["excluded", "no origin", "sensitive locator"]);
+export const wasSpooled = (status: string): boolean => !UNSPOOLED_STATUSES.has(status);
+export interface CaptureOptions {
+  dryRun?: boolean;
+  afterChunk?: () => Promise<void>;
+  // Read window per call, for tests exercising a transcript larger than one read; production
+  // callers rely on the 16 MiB default.
+  readWindow?: number;
+}
 export async function capture(
   event: Event,
   config: Config,
-  options: { dryRun?: boolean; afterChunk?: () => Promise<void> } = {},
+  options: CaptureOptions = {},
 ): Promise<{ status: string; chunks: number; bytes: number; payloads?: Chunk[] }> {
   if (config.readOnly || !(await allowed(event.cwd, config)))
     return { status: "excluded", chunks: 0, bytes: 0 };
@@ -159,13 +171,20 @@ export async function capture(
     const file = await open(event.transcriptPath, "r");
     let buffer: Buffer;
     try {
-      buffer = Buffer.alloc(Math.min(info.size - offset, 16 * 1024 * 1024));
+      buffer = Buffer.alloc(Math.min(info.size - offset, options.readWindow ?? 16 * 1024 * 1024));
       const result = await file.read(buffer, 0, buffer.length, offset);
       buffer = buffer.subarray(0, result.bytesRead);
     } finally {
       await file.close();
     }
     const end = buffer.lastIndexOf(10);
+    // No newline anywhere in a full window (as opposed to a short final read that reached the
+    // end of the file) means one line is longer than the window itself: capture cannot make any
+    // progress here, ever, and must not be mistaken for the ordinary case of a not-yet-finished
+    // trailing line. This returns before the closing check below, so a SessionEnd hook on such a
+    // transcript defers delivering its completed flag until the oversized line is resolved.
+    if (end < 0 && offset + buffer.length < info.size)
+      return { status: "line exceeds window", chunks: 0, bytes: 0 };
     // A session-end after the last turn still has to deliver the completed flag.
     const closing = Boolean(event.completed) && Boolean(state.meta) && !state.meta?.completed;
     if (end < 0 && !closing) return { status: "no complete records", chunks: 0, bytes: 0 };
@@ -180,6 +199,7 @@ export async function capture(
       seenUsage: restart ? [] : state.seenUsage,
       indexOffset: restart ? 0 : state.recordIndex,
       model: state.model,
+      ...(restart ? {} : { start: state.start }),
     });
     const safe = scrubValue(parsed, extra) as typeof parsed;
     const meta = scrubValue(
@@ -253,6 +273,7 @@ export async function capture(
       pending: safe.messages.slice(-16),
       seenUsage: safe.state.seenUsage,
       model: safe.state.model,
+      start: safe.state.start,
       meta,
       event,
       paused: false,

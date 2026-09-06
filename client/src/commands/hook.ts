@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
-import { capture, type Event } from "../capture";
+import { capture, wasSpooled, type Event } from "../capture";
 import { loadConfig } from "../config";
 import { errorClass, log } from "../state";
-import { children, claudeCodeEvent } from "../harnesses/index";
+import { children, hookEvent } from "../harnesses/index";
 import { uploaderRunning } from "./sync";
 export interface HookOptions {
   input?: string;
@@ -32,13 +32,13 @@ function detach() {
 export async function hook(options: HookOptions = {}): Promise<void> {
   let event: Event | undefined;
   try {
-    event = claudeCodeEvent(JSON.parse(options.input ?? (await readStdin())) as unknown);
+    event = await hookEvent(JSON.parse(options.input ?? (await readStdin())) as unknown);
     if (!event) return;
     const config = await loadConfig();
     const results = [await capture(event, config, { dryRun: options.dryRun })];
     // Hand the spool over before capturing children: a harness that reaps the hook when the
     // session exits must not lose the uploader, which picks the children up on its own.
-    const spooled = !["excluded", "no origin", "sensitive locator"].includes(results[0]!.status);
+    const spooled = wasSpooled(results[0]!.status);
     if (spooled && !options.dryRun && !(await uploaderRunning(config)))
       await (options.startUploader ?? detach)();
     if (spooled)
@@ -64,7 +64,7 @@ export async function hook(options: HookOptions = {}): Promise<void> {
     });
   } catch (error) {
     await log({
-      source: "claude-code",
+      source: event?.source ?? "unknown",
       session: event?.sessionId ?? "unknown",
       status: "error",
       error: errorClass(error),

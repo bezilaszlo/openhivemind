@@ -1,7 +1,7 @@
 import { cp, rm } from "node:fs/promises";
 import { defineConfig } from "tsup";
-// The native plugin has to run without node_modules, so it carries its own copy of the bundle.
-const plugin = "plugins/claude-code";
+// The native plugins have to run without node_modules, so each carries its own copy of the bundle.
+const plugins = ["plugins/claude-code", "plugins/codex"];
 export default defineConfig({
   entry: ["src/cli.ts"],
   format: ["esm"],
@@ -12,9 +12,10 @@ export default defineConfig({
     js: "import { createRequire as __ohmRequire } from 'node:module';\nconst require = __ohmRequire(import.meta.url);",
   },
   async onSuccess() {
-    for (const folder of ["dist", "skills"]) {
-      await rm(`${plugin}/${folder}`, { recursive: true, force: true });
-      await cp(folder, `${plugin}/${folder}`, { recursive: true });
-    }
+    for (const plugin of plugins)
+      for (const folder of ["dist", "skills"]) {
+        await rm(`${plugin}/${folder}`, { recursive: true, force: true });
+        await cp(folder, `${plugin}/${folder}`, { recursive: true });
+      }
   },
 });

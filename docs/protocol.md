@@ -152,7 +152,10 @@ a self-contained bundle that runs without `node_modules`.
 ## Harness: Codex CLI
 
 Verified 2026-09-05 on codex-cli 0.153.4 (docs + 37 local rollouts + six live
-`codex exec` runs with logging hooks in a scratch `CODEX_HOME`).
+`codex exec` runs with logging hooks in a scratch `CODEX_HOME`), and re-verified
+2026-09-06 on the same version with the native plugin installed from this
+repository's marketplace (three live `codex exec` runs, the CLI's own embedded
+hook JSON schemas, and its `hooks/list` app-server route).
 
 | Topic | Finding |
 | --- | --- |
@@ -160,18 +163,24 @@ Verified 2026-09-05 on codex-cli 0.153.4 (docs + 37 local rollouts + six live
 | Line types to keep | `session_meta` (cwd, cli_version, model_provider, `git{commit_hash,branch,repository_url}`, `parent_thread_id`/`forked_from_id`), `response_item` with payload `message` (user `input_text` / assistant `output_text`), `custom_tool_call` (`name`, `input`), `function_call` (`name`, `arguments`), `compacted`, `token_usage_record`, `turn_context` (model per turn). Drop `reasoning` (encrypted), `*_output`, `event_msg`, `world_state` |
 | Usage | `token_usage_record` `{turn_id, usage, turn_token_usage, thread_token_usage}`; also `event_msg/token_count` with cumulative + last. `input_tokens` includes cached; subtract `cached_input_tokens` to match Claude semantics. The record is written after the assistant message, often in a later hook run: emit the message with `usage: null`, then re-emit it with `rev + 1` once the record is read (revision contract, § Ingest API). Per-seq hash covers usage, not only text |
 | Compaction | Top-level `compacted` `{message, replacement_history, window_*}`, appended |
-| Subagents | Separate rollout files: `session_meta.id` = child thread, `session_meta.session_id` = parent, `thread_source` ∈ {subagent, guardian_review, …}, `subagent_history_start_ordinal`; parent `session_meta` copied into the child file |
+| Subagents | Separate rollout files: `session_meta.id` = child thread, `session_meta.session_id` = parent, `thread_source` ∈ {subagent, guardian_review, …}, `agent_path` / `agent_nickname`. The child file **opens with the parent's history and the parent's `session_meta` copied in**, all below `subagent_history_start_ordinal`; only the first `session_meta` and records from that ordinal on belong to the child, and everything below it would otherwise be captured twice. A subagent receives its task as an encrypted `agent_message`, never as a prompt, so `agent_path` is its only title |
 | Append-only | Yes; `compacted` appends; resume reuses id and file (`SessionStart.source = resume`) |
-| Title | No field; first user message, client side |
-| Hook stdin | All events: `session_id, transcript_path, cwd, hook_event_name, model, permission_mode` (+ `turn_id`). `Stop` adds `stop_hook_active, last_assistant_message`; `SessionEnd` adds `reason`. `transcript_path` is populated on 0.153.4 although the docs say otherwise; keep the filename fallback `rollout-*-<session_id>.jsonl` |
+| Title | No field. The **first** user message is not the developer's: Codex opens every thread with `agents_md.instructions` and `environments.environment_context` blocks, and injects an `environment_context` refresh on later turns. `internal_chat_message_metadata_passthrough.content_item_kinds[i]` labels each content block; only `user.text` is typed by the developer. Injected blocks are dropped and the title is the first `user.text` block |
+| Hook stdin | Per the CLI's embedded schemas: every event carries `session_id, cwd, hook_event_name, transcript_path` (nullable). `Stop` adds `model, permission_mode, turn_id, stop_hook_active, last_assistant_message`; `SessionEnd` adds only `reason` (const `other`) and carries **no** `model`, `permission_mode` or `turn_id`. `transcript_path` is populated on 0.153.4 although the docs say otherwise; keep the filename fallback `rollout-*-<session_id>.jsonl` |
+| Hook events | `PreToolUse, PermissionRequest, PostToolUse, PreCompact, PostCompact, SessionStart, SessionEnd, UserPromptSubmit, Stop, SubagentStart, SubagentStop, Interrupt` |
+| Hook trust | Every hook — plugin-bundled, user or repo-local — is discovered as `untrusted` and is **skipped in silence** until it is trusted: nothing runs, nothing is logged, and `codex doctor` says nothing. Trust is `[hooks.state."<key>"] enabled = true, trusted_hash = "sha256:…"` in `config.toml`, keyed `<pluginId>:hooks/hooks.json:<event>:<group>:<index>` for plugin hooks and `<path>:<event>:<group>:<index>` otherwise; the TUI writes it. `codex exec` cannot grant it. The app-server route `hooks/list` reports every hook with its `trustStatus` and `currentHash`, which is the value to trust |
 | Config | `~/.codex/hooks.json` or `[[hooks.<Event>.hooks]]` in `config.toml`; repo-local `.codex/` layers if trusted; `[features] hooks = true` default |
 | Async | `"async": true`, ≤ 8 concurrent, delivered at the next safe checkpoint. **A `sleep 5` async hook did not complete under one-shot `codex exec`**: the process was reaped on exit. Treat async as best effort; the drain path must not depend on it |
 | SessionEnd | Always synchronous, default 1 s, hard cap 3 s |
-| Plugin | `.codex-plugin/plugin.json`, `hooks/hooks.json` at plugin root, `skills/`, `PLUGIN_ROOT` / `PLUGIN_DATA` env (Claude-prefixed aliases too); marketplace at `.agents/plugins/marketplace.json`. Open issues #16430 / #17532 report plugin-bundled and repo-local hooks not firing in older versions; verify on install via `doctor` |
+| Plugin | `.codex-plugin/plugin.json`, `hooks/hooks.json` at plugin root, `skills/`; `${PLUGIN_ROOT}` expands to the installed copy under `$CODEX_HOME/plugins/cache/<marketplace>/<plugin>/<version>`. The manifest rejects unknown fields — `hooks` among them — and requires `name`, semver `version`, `description`, `author.name` and a full `interface` block; `codex plugin marketplace add <repo>` + `codex plugin add <plugin>@<marketplace>` install from a repo-root `.agents/plugins/marketplace.json`. Bundled hooks **are** discovered on 0.153.4 (the `plugin_hooks` feature flag reads `removed` but does not gate them); they fire once trusted, which is what issues #16430 / #17532 are seen as. `doctor` reports it |
 
 Adapter: `Stop` → `turn`; `SessionEnd` → `session-end` (spool only, ≤ 1 s).
 Capture cursor: byte offset. Child rollouts are discovered by scanning the
-day directory for files whose `session_meta.session_id` equals the parent.
+day directory for files whose `session_meta.session_id` equals the parent; a
+child's external id is its own thread id, its `spawn_depth` is 1 because Codex
+records no depth chain, and its title is `agent_path`. Under one-shot `codex exec` the async `Stop` hook
+is reaped before it runs, so in practice the synchronous `SessionEnd` hook is
+what captures the thread, and the drain path closes anything it missed.
 
 ## Harness: opencode
 
@@ -217,7 +226,7 @@ system owns install, update, disable and uninstall.
 | Harness | Path |
 | --- | --- |
 | Claude Code | Native plugin only: `/plugin marketplace add openhivemind/openhivemind` + `/plugin install openhivemind`. The marketplace manifest is `.claude-plugin/marketplace.json` at the repository root and points at `client/plugins/claude-code`, whose `dist/` and `skills/` the client build assembles. Ships hooks and the four skills under the `openhivemind:` namespace. The `setup` skill runs `openhivemind setup <url>` |
-| Codex CLI | Native plugin only, same layout. `doctor` verifies that bundled hooks fire (issues #16430 / #17532); if not, it tells the user to upgrade Codex. No config patching by us |
+| Codex CLI | Native plugin only: `codex plugin marketplace add openhivemind/openhivemind` + `codex plugin add openhivemind@openhivemind`. The manifest is `.agents/plugins/marketplace.json` at the repository root and points at `client/plugins/codex`, whose `dist/` and `skills/` the client build assembles. Codex runs the bundled hooks only once they are trusted, which is granted in the TUI; until then they are skipped silently. `doctor` reports whether the plugin is installed and whether its hooks have ever fired (issues #16430 / #17532). No config patching by us |
 | opencode | No marketplace. `openhivemind setup` appends the `openhivemind-opencode` npm name to `opencode.json` `plugin[]`, the documented install path; skills are installed as opencode command files by the same step |
 
 `openhivemind setup <url>`: browser login, PAT stored, `doctor`, and the
@@ -230,8 +239,9 @@ both taking repeatable `--root` / `--exclude` and `--read-only`, and storing
 the resolved real paths in a mode-600 config. Browser login and the opencode
 entry are not implemented yet. `doctor` reports the config file and its mode,
 server reachability and the accepted protocol range, token validity, the
-effective roots and exclude lists, whether the Claude Code plugin is
-installed, invalid ignore lines, spool size, pending and permanently rejected
+effective roots and exclude lists, whether the Claude Code and Codex
+plugins are installed and whether the Codex hooks have fired, invalid ignore
+lines, spool size, pending and permanently rejected
 chunks, paused and gap sessions, and a recorded "upgrade client" stop. It
 exits 2 when a check fails.
 
