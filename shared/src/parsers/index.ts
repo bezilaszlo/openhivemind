@@ -10,24 +10,14 @@ const str = (value: unknown, fallback = ""): string =>
 const num = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-// Claude Code stitches a caveat, a /command echo, or a system reminder ahead of a user turn;
-// none of it is something the developer typed, so it must never become a prompt, a title, or
-// search noise. A real prompt can still follow one of these in the same block (a slash command's
-// own question, or a reminder stapled ahead of typed text), so only the matched prefix is
-// dropped, never the block that still has real text after it.
-const INJECTED_PROMPT_WRAPPER = new RegExp(
-  "^(?:" +
-    [
-      "<local-command-caveat>[\\s\\S]*?</local-command-caveat>",
-      "<command-name>[\\s\\S]*?</command-name>\\s*<command-message>[\\s\\S]*?</command-message>\\s*<command-args>[\\s\\S]*?</command-args>",
-      "<system-reminder>[\\s\\S]*?</system-reminder>",
-    ].join("|") +
-    ")\\s*",
-);
+// Claude Code stamps a whole user record `isMeta: true` for a `/command` echo or a
+// local-command caveat; those records are dropped entirely below, never emitted. A
+// `system-reminder` block is different: the harness staples it onto a record that still
+// carries the developer's own typed text (memory recalls, hook output), so it is stripped
+// wherever it occurs in the block rather than the record being dropped.
+const SYSTEM_REMINDER = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
 function stripInjectedPrompt(text: string): string {
-  let result = text;
-  while (INJECTED_PROMPT_WRAPPER.test(result)) result = result.replace(INJECTED_PROMPT_WRAPPER, "");
-  return result;
+  return text.replace(SYSTEM_REMINDER, "").trim();
 }
 export type ParsedMessage = Omit<Message, "seq" | "rev"> & { source_event_id: string };
 export interface Parsed {
@@ -90,6 +80,7 @@ export function parseRecords(
       if (data.version) meta.version = str(data.version);
       if (branch) meta.branch = branch;
       if (data.type !== "user" && data.type !== "assistant") return;
+      if (data.type === "user" && data.isMeta) return;
       model = str(message.model) || model;
       const kind = data.isCompactSummary ? "summary" : data.type === "user" ? "prompt" : "reply";
       const clean = (text: string) => (kind === "prompt" ? stripInjectedPrompt(text) : text);

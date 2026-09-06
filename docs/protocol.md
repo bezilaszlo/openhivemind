@@ -129,6 +129,7 @@ Haiku runs with logging hooks in a scratch repo).
 | SessionEnd | Did not fire on `-p` or `-p --resume`; fired on `claude stop <id>` with `reason: other`. Shared 1.5 s budget, raisable to 60 s. Never rely on it for delivery |
 | Async | `async: true` on command hooks, no timeout enforced; `asyncRewake: true` wakes the agent on exit 2 |
 | Plugin | `.claude-plugin/plugin.json` (only file allowed in that dir), `hooks/hooks.json`, `skills/<name>/SKILL.md`, marketplace.json; `${CLAUDE_PLUGIN_ROOT}`; hook command may be `node "${CLAUDE_PLUGIN_ROOT}/dist/hook.mjs"`; plugin-local `package.json` deps are installed with `npm install --ignore-scripts` |
+| Injected records | A `/command` echo and the `local-command-caveat` ahead of it are each a whole `user` record flagged `isMeta: true`; both are dropped entire, never emitted. A `system-reminder` is different: it is stapled onto a record that still carries the developer's own typed text (memory recalls, hook output), so it is stripped wherever it occurs in the block — leading, mid-block, or trailing — rather than the record being dropped; a block that is nothing but a reminder once stripped is dropped |
 
 Adapter: `Stop` (async) → `turn`; `SessionEnd` → `session-end` (spool only).
 Capture cursor: byte offset; partial trailing line left for the next read.

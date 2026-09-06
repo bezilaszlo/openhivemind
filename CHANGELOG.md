@@ -11,15 +11,18 @@ actual runtime source (`backend/src`, `frontend/src` plus `index.html`,
 package directories with ignore lists, so anything outside that source tree
 is never copied into the container at all.
 
-Fixed session titles landing on Claude Code's injected wrapper text (the
-`local-command-caveat`, `/command` echo, or a `system-reminder` block stapled
-ahead of a turn, e.g. every session that opens with `/clear`) instead of the
-first prompt the developer actually typed. The Claude Code parser branch in
-`shared/src/parsers/index.ts` now drops a prompt block that is nothing but
-one of these wrappers, and strips a wrapper prefix that precedes real typed
-text in the same block, mirroring how the Codex branch already drops its
-injected `AGENTS.md`/environment blocks. No fixture golden changed; none of
-the committed captures happened to contain one of these wrappers.
+Fixed session titles, prompt text and search still carrying Claude Code's
+injected wrapper text (the `local-command-caveat` and `/command` echo ahead of
+a `/clear`, or a `system-reminder` block the harness staples onto a memory
+recall or hook output) instead of only what the developer actually typed. The
+Claude Code parser branch in `shared/src/parsers/index.ts` now drops a whole
+user record when the harness flags it `isMeta: true` (the caveat and the
+command echo), and strips a `system-reminder` wherever it occurs in a
+record's block — leading, mid-block, or trailing, not just a bare prefix —
+dropping the record if nothing real is left, mirroring how the Codex branch
+already drops its injected `AGENTS.md`/environment blocks. `fixtures/claude-code/session.json`
+now opens with a synthetic `/clear` and a trailing reminder so the golden
+locks this in.
 
 Fixed a login/API failure when a browser reached the dev stack by a different
 loopback spelling than the configured `APP_URL` (e.g. `localhost` vs.

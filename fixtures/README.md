@@ -22,6 +22,14 @@ context pair, the single-block ones after a `turn_context` are `user.text`.
 layout Claude Code uses (`agent-<id>.jsonl` plus `agent-<id>.meta.json`), with a
 depth-1 and a depth-2 child, for the discovery and child-capture tests.
 
+`claude-code/session.json` opens with a synthetic `/clear`: an `isMeta: true`
+`local-command-caveat` record, an `isMeta: true` `/clear` command echo, and the
+`system`/`local_command` stdout record Claude Code emits alongside them — none
+of which reach the golden. The first real prompt record carries a trailing
+`system-reminder` on the same block as the typed text, added by hand (not
+recovered) to lock in that a reminder is stripped wherever it sits in the
+block, not just at a bare leading position.
+
 The goldens describe normalized output from these captures. Synthetic edge cases
 in parser tests supplement the real captures for compaction, secret-bearing tool
 calls, duplicate response usage and future/unknown record types. The captures do

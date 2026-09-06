@@ -37,6 +37,7 @@ it("drops a /clear caveat and command echo, and titles from the first real promp
     },
     {
       type: "user",
+      isMeta: true,
       uuid: "b",
       message: {
         role: "user",
@@ -58,21 +59,73 @@ it("drops a /clear caveat and command echo, and titles from the first real promp
   expect(result.messages).toHaveLength(1);
   expect(result.messages[0]).toMatchObject({ kind: "prompt", text: "Fix the flaky widget test" });
 });
-it("keeps real text that follows an injected wrapper in the same block", () => {
+it("keeps a lone command-name echo with no message/args verbatim when not flagged isMeta", () => {
   const result = parseRecords("claude-code", [
+    {
+      type: "user",
+      uuid: "a",
+      message: { role: "user", content: "<command-name>/foo</command-name>" },
+    },
+  ]);
+  expect(result.messages).toEqual([
+    expect.objectContaining({ kind: "prompt", text: "<command-name>/foo</command-name>" }),
+  ]);
+});
+it("strips a system-reminder wherever it occurs in the block: leading, mid-block, trailing", () => {
+  const leadingWithWhitespace = parseRecords("claude-code", [
     {
       type: "user",
       uuid: "a",
       message: {
         role: "user",
         content:
-          "<system-reminder>Background context the harness added.</system-reminder>\nWhat does this function do?",
+          "   \n<system-reminder>Background context the harness added.</system-reminder>\nWhat does this function do?",
       },
     },
   ]);
-  expect(result.messages).toEqual([
+  expect(leadingWithWhitespace.messages).toEqual([
     expect.objectContaining({ kind: "prompt", text: "What does this function do?" }),
   ]);
+  const trailing = parseRecords("claude-code", [
+    {
+      type: "user",
+      uuid: "b",
+      message: {
+        role: "user",
+        content:
+          "Fix the flaky widget test<system-reminder>Recalled memory noise.</system-reminder>",
+      },
+    },
+  ]);
+  expect(trailing.messages).toEqual([
+    expect.objectContaining({ kind: "prompt", text: "Fix the flaky widget test" }),
+  ]);
+  const midBlock = parseRecords("claude-code", [
+    {
+      type: "user",
+      uuid: "c",
+      message: {
+        role: "user",
+        content: "Before<system-reminder>hook output stapled in the middle</system-reminder>After",
+      },
+    },
+  ]);
+  expect(midBlock.messages).toEqual([
+    expect.objectContaining({ kind: "prompt", text: "BeforeAfter" }),
+  ]);
+});
+it("drops a prompt record that is only a system-reminder once stripped", () => {
+  const result = parseRecords("claude-code", [
+    {
+      type: "user",
+      uuid: "a",
+      message: {
+        role: "user",
+        content: "<system-reminder>Only harness noise, nothing typed.</system-reminder>",
+      },
+    },
+  ]);
+  expect(result.messages).toEqual([]);
 });
 it("subtracts cached Codex input and excludes outputs", () => {
   const result = parseRecords("codex", [
