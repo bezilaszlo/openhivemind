@@ -9,38 +9,21 @@ import { login } from "./commands/login";
 import { sync } from "./commands/sync";
 import { loadConfig } from "./config";
 import { readStdin } from "./input";
-function options(args: string[]) {
-  const values = new Map<string, string[]>();
-  const rest: string[] = [];
-  for (let index = 0; index < args.length; index++) {
-    const arg = args[index]!;
-    if (!arg.startsWith("--")) {
-      rest.push(arg);
-      continue;
-    }
-    const equals = arg.indexOf("=");
-    const name = arg.slice(2, equals < 0 ? undefined : equals);
-    const next = args[index + 1];
-    const value =
-      equals >= 0
-        ? arg.slice(equals + 1)
-        : next !== undefined && !next.startsWith("--")
-          ? args[++index]!
-          : "";
-    values.set(name, [...(values.get(name) ?? []), value]);
-  }
-  return {
-    rest,
-    list: (name: string) => values.get(name),
-    get: (name: string) => values.get(name)?.at(-1),
-    has: (name: string) => values.has(name),
-  };
+import { options } from "./args";
+import { search } from "./commands/search";
+import { sessions } from "./commands/sessions";
+import { show } from "./commands/show";
+function emit(result: { lines: string[]; exitCode: number }) {
+  const text = result.lines.join("\n");
+  if (result.exitCode === 2) console.error(text);
+  else console.log(text);
+  process.exitCode = result.exitCode;
 }
 async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === "--help" || command === "help") {
     console.log(
-      "Open Hivemind (development)\n\nCommands: setup <url> [--token <pat>] [--root <dir>] [--exclude <dir>] [--read-only],\n          login --server <url> --token <pat>, doctor, hook [--dry-run], sync,\n          beam <transcript.jsonl|session-id>, config <server-url>, skills [name]\nRead commands are under implementation.\nExit codes: 0 success, 1 empty, 2 usage/request error.",
+      "Open Hivemind (development)\n\nCommands: setup <url> [--token <pat>] [--root <dir>] [--exclude <dir>] [--read-only],\n          login --server <url> --token <pat>, doctor, hook [--dry-run], sync,\n          beam <transcript.jsonl|session-id>, config <server-url>, skills [name],\n          search <query...> [--remote --author --branch --since --until --kind --mine --limit --context --regex --case-sensitive --format plain|md],\n          sessions [--remote --author --branch --since --until --kind --mine --days N --limit --format plain|md],\n          show <session-id> [--last N --match <text> --regex <pattern> --context N --format plain|md]\nExit codes: 0 success, 1 empty, 2 usage/request error.",
     );
     return;
   }
@@ -112,6 +95,18 @@ async function main() {
     );
     for (const error of new Set(result.uploaded.errors)) console.error(error);
     if (result.uploaded.errors.length) process.exitCode = 2;
+    return;
+  }
+  if (command === "search") {
+    emit(await search(await loadConfig(), options(args)));
+    return;
+  }
+  if (command === "sessions") {
+    emit(await sessions(await loadConfig(), options(args)));
+    return;
+  }
+  if (command === "show") {
+    emit(await show(await loadConfig(), options(args)));
     return;
   }
   if (command === "config" && args.length === 1) {

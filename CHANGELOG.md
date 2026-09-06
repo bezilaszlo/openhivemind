@@ -10,6 +10,11 @@ by a later hook. No new idempotency logic was needed — capture's own
 per-seq content hashes already make a re-beam of an already-sent session a
 no-op, the same way a repeated hook call is.
 
+Added the `search`, `sessions` and `show` read commands to the CLI, with
+plain/Markdown output, session-grouped search hits, `--days`-based date
+filtering and client-side match windowing for `show`. Updated the `search`
+skill with the working recipe and documented the commands in the README.
+
 Initial MVP foundation checkpoint: pnpm workspace on Node 24 LTS, shared wire
 schemas and API validation, project normalization, privacy and parser regression
 tests, Boolean search grammar, runtime OpenAPI, generated auth schema and initial

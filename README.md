@@ -11,9 +11,10 @@ Shared, searchable history of coding-agent sessions for a team. Self-hosted.
 **Status: MVP implementation in progress.** The workspace, shared contracts,
 privacy/search/parser tests, authenticated data routes, local/OIDC integration
 and the interactive viewer are runnable. Claude Code and Codex CLI capture run
-end to end through their native plugins, the spool and the uploader; opencode
-capture, the read commands and browser login are not implemented yet. Full
-release acceptance remains unfinished; this is not v1.
+end to end through their native plugins, the spool and the uploader, and the
+`search`, `sessions` and `show` read commands work from the CLI; opencode
+capture and browser login are not implemented yet. Full release acceptance
+remains unfinished; this is not v1.
 
 ## Capture a Claude Code session
 
@@ -51,6 +52,15 @@ the same capture and upload path as the hook, so a beamed session keeps
 uploading normally from a later hook, includes the session's subagents, and
 re-running it on an already-beamed session sends nothing new. There is no bulk
 or historic-discovery mode yet (see ROADMAP.md); beam one session at a time.
+
+## Search from the CLI
+
+`openhivemind search <query...>` searches shared history and groups hits by
+session, `openhivemind sessions` lists recent sessions (`--days N` and the
+usual filters), and `openhivemind show <session-id>` prints a message window
+— `--match <text>` or `--regex <pattern>` centre it on the first match with
+`--context N`. All three take `--format plain|md` and are bounded by default;
+see `openhivemind skills search` for the recommended recipe.
 
 ## Frontend preview
 
