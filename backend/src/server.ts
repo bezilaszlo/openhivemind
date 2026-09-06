@@ -1,11 +1,10 @@
-import { resolve, join } from "node:path";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { randomBytes } from "node:crypto";
+import { resolve } from "node:path";
+import { existsSync } from "node:fs";
 import staticFiles from "@fastify/static";
 import { buildApp } from "./app";
 import { database, migrate, verifyMigrations } from "./db/index";
 import { createAuth } from "./auth/index";
+import { loadSecret } from "./auth/secret";
 import { mountAuth } from "./auth/bridge";
 import { handlers } from "./services";
 const url = process.env.APP_URL ?? "http://localhost:3000";
@@ -21,20 +20,7 @@ if (process.argv[2] === "migrate") {
   }
 } else {
   await verifyMigrations(pool, migrations);
-  let secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    const folder =
-      process.env.SERVER_STATE_DIR ?? join(homedir(), ".local/state/openhivemind/server");
-    await mkdir(folder, { recursive: true, mode: 0o700 });
-    const path = join(folder, "auth-secret");
-    try {
-      await writeFile(path, randomBytes(48).toString("hex"), { flag: "wx", mode: 0o600 });
-    } catch (error) {
-      if (!(error && typeof error === "object" && "code" in error && error.code === "EEXIST"))
-        throw error;
-    }
-    secret = await readFile(path, "utf8");
-  }
+  const secret = process.env.AUTH_SECRET || (await loadSecret());
   if (secret.length < 32) throw new Error("AUTH_SECRET must contain at least 32 characters");
   const auth = createAuth(pool, {
     url,
@@ -54,7 +40,9 @@ if (process.argv[2] === "migrate") {
     handlers: handlers(pool, auth, url, Number(process.env.RETENTION_DAYS ?? 90)),
   });
   await mountAuth(app, pool, auth, url);
-  await app.register(staticFiles, { root: resolve(import.meta.dirname, "../../frontend/dist") });
+  // The dev stack serves the viewer from Vite, so a missing build is not an error there.
+  const viewer = resolve(import.meta.dirname, "../../frontend/dist");
+  if (existsSync(viewer)) await app.register(staticFiles, { root: viewer });
   app.get("/health/ready", async () => {
     await pool.query("SELECT 1");
     return { ok: true };
