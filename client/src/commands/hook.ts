@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { capture, wasSpooled, type Event } from "../capture";
 import { loadConfig } from "../config";
+import { readStdin } from "../input";
 import { errorClass, log } from "../state";
 import { children, hookEvent } from "../harnesses/index";
 import { uploaderRunning } from "./sync";
@@ -8,16 +9,6 @@ export interface HookOptions {
   input?: string;
   dryRun?: boolean;
   startUploader?: () => void | Promise<void>;
-}
-async function readStdin(): Promise<string> {
-  let size = 0;
-  const parts: Buffer[] = [];
-  for await (const part of process.stdin as AsyncIterable<Buffer>) {
-    size += part.length;
-    if (size > 1024 * 1024) throw new Error("Hook input is too large");
-    parts.push(part);
-  }
-  return Buffer.concat(parts).toString("utf8");
 }
 function detach() {
   const entry = process.argv[1];

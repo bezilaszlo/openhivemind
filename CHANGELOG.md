@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+Fixed a login/API failure when a browser reached the dev stack by a different
+loopback spelling than the configured `APP_URL` (e.g. `localhost` vs.
+`127.0.0.1`): Better Auth's `trustedOrigins` and the app's own origin checks
+(`backend/src/auth/bridge.ts`, `backend/src/services.ts`) now share one
+loopback-equivalence helper (`backend/src/auth/origin.ts`) that trusts
+`localhost`, `127.0.0.1` and `[::1]` on the same port when the configured URL
+is itself loopback; a non-loopback URL keeps the exact single-origin check.
+The dev stack's `APP_URL` default is now `http://localhost:5173` to match
+what a developer actually types in the browser (`compose.dev.yml`); the Vite
+bind address is unchanged.
+
+Fixed `GET /api/v1/config` reporting `providers: ["local"]` unconditionally
+even when OIDC is configured; it now derives the list from the same runtime
+auth configuration `GET /api/v1/auth/providers` already uses.
+
 Added `openhivemind beam <transcript.jsonl|session-id>`: sends an existing
 Claude Code transcript through the same capture and upload path the hook
 uses, resolving a bare session id against the known `~/.claude/projects`
@@ -53,6 +68,16 @@ messages; only the block Codex labels `user.text` is kept, so the session title
 and the prompt feed are what the developer actually typed. `doctor` now reports
 both plugins, and says whether the Codex hooks have ever fired — Codex discovers
 them but skips them silently until they are trusted.
+
+The entropy scrub no longer exempts a string just because it contains a dot or a
+slash. That blanket rule meant any high-entropy secret survived once `.x` or `/x`
+was appended to it. Paths, URLs and package names are now recognised by their
+structure — words held apart by separators, no single run of letters and digits
+long and random enough to be a secret on its own — so real paths stay untouched
+while a secret keeps being redacted whatever punctuation is stuck to it. One
+visible side effect: lockfile integrity strings (`sha512-<base64>`) now redact
+where a slash in the digest used to exempt them, so a scrubbed `pnpm-lock.yaml`
+diff looks changed. That is noise, not lost data.
 
 Validation: 46 unit/component/contract tests pass; the latest backend integration
 run passed 13 tests. The frontend production build passes. Browser visual review

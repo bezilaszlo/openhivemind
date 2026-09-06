@@ -56,13 +56,19 @@ export async function buildApp(
       },
       handler: async (request, reply) => {
         reply.code(definition.status);
-        if (key === "config")
+        if (key === "config") {
+          // Same source as GET /api/v1/auth/providers: config must not tell the client a
+          // provider (e.g. OIDC) is unavailable when the auth handler would actually serve it.
+          const providers = options.handlers?.providers
+            ? ((await options.handlers.providers(request)) as { providers: string[] }).providers
+            : ["local"];
           return {
             appUrl: options.url ?? "http://localhost:3000",
-            providers: ["local"],
+            providers,
             features: { capture: true },
             protocol: { current: 1, minimum: 1 },
           };
+        }
         const handler = options.handlers?.[key];
         if (!handler) throw new HttpError(503, "Service is not configured");
         return handler(request);
