@@ -7,6 +7,17 @@
 # and watch rules stay independent. Only Vite and Postgres are published. The
 # rebuild rules cover every manifest: those change what the image installs, so they
 # must rebuild rather than sync into a container holding stale node_modules.
+#
+# The watch sync paths are the actual runtime source trees, not whole package
+# directories: backend/src (`tsx watch`'s import graph starts at src/server.ts and
+# never reaches backend/test, drizzle.config.ts or tsup.config.ts, so those are not
+# synced at all — nothing to restart or grow stale), plus frontend/src, index.html,
+# public/ and vite.config.ts for the Vite dev server, plus shared/src for both. Test
+# files (`**/*.test.ts(x)`) are excluded from every sync rule: they are never on
+# either runtime's import graph, so copying them in only wastes a sync round trip.
+# Migrations get their own sync+restart rule, excluded from the plain backend/src
+# sync, so a schema change reruns the in-band migrate instead of restarting tsx into
+# a database the new migration has not reached yet.
 
 x-dev-image: &dev-image
   image: openhivemind-dev
@@ -47,11 +58,11 @@ services:
         # a plain sync would restart tsx into a database the new migration has not reached.
         - {
             action: sync,
-            path: backend,
-            target: /app/backend,
-            ignore: [node_modules/, dist/, src/db/migrations/],
+            path: backend/src,
+            target: /app/backend/src,
+            ignore: [db/migrations/, "**/*.test.ts"],
           }
-        - { action: sync, path: shared, target: /app/shared, ignore: [node_modules/] }
+        - { action: sync, path: shared/src, target: /app/shared/src, ignore: ["**/*.test.ts"] }
         # A new migration has to rerun the in-band migrate, which the command does on restart.
         - {
             action: sync+restart,
@@ -80,8 +91,16 @@ services:
       - backend
     develop:
       watch:
-        - { action: sync, path: frontend, target: /app/frontend, ignore: [node_modules/, dist/] }
-        - { action: sync, path: shared, target: /app/shared, ignore: [node_modules/] }
+        - {
+            action: sync,
+            path: frontend/src,
+            target: /app/frontend/src,
+            ignore: ["**/*.test.ts", "**/*.test.tsx"],
+          }
+        - { action: sync, path: frontend/public, target: /app/frontend/public }
+        - { action: sync, path: frontend/index.html, target: /app/frontend/index.html }
+        - { action: sync, path: frontend/vite.config.ts, target: /app/frontend/vite.config.ts }
+        - { action: sync, path: shared/src, target: /app/shared/src, ignore: ["**/*.test.ts"] }
         - { action: rebuild, path: pnpm-lock.yaml }
         - { action: rebuild, path: pnpm-workspace.yaml }
         - { action: rebuild, path: package.json }

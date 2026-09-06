@@ -109,7 +109,13 @@ starting its watch, so a fresh Postgres volume needs no manual step. Vite
 hot-reloads on http://localhost:5173 and reaches the backend by service name
 through `VITE_API_PROXY`, which also overrides the target for host-side Vite.
 Only Vite and Postgres are published, and changing a manifest or the lockfile
-rebuilds the dev image.
+rebuilds the dev image. Compose Watch syncs each service's actual runtime
+source — `backend/src` (`tsx watch` restarts on that and on `shared/src`),
+`frontend/src`, `index.html`, `public/` and `vite.config.ts` for Vite, plus
+`shared/src` for both — never whole package directories, so `backend/test`,
+`drizzle.config.ts`, `tsup.config.ts`, fixtures and docs are neither synced
+nor able to trigger a restart; a migration under `src/db/migrations` gets its
+own sync-and-restart so a schema change reruns the in-band migrate.
 
 `docker compose up -d --build` deploys the production shape and nothing else: one
 `openhivemind-app` container serving the API and the built viewer on

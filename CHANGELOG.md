@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+Kept editing test files, `drizzle.config.ts`, `tsup.config.ts`, fixtures or
+docs from restarting or resyncing the dev-stack `backend` container: `tsx
+watch` now gets explicit `--exclude` globs for test files as a documented
+safety net, and `compose.dev.yml`'s Compose Watch rules sync each service's
+actual runtime source (`backend/src`, `frontend/src` plus `index.html`,
+`public/` and `vite.config.ts`, and `shared/src` for both) instead of whole
+package directories with ignore lists, so anything outside that source tree
+is never copied into the container at all.
+
 Fixed session titles landing on Claude Code's injected wrapper text (the
 `local-command-caveat`, `/command` echo, or a `system-reminder` block stapled
 ahead of a turn, e.g. every session that opens with `/clear`) instead of the

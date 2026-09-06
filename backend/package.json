@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --exclude '**/*.test.ts' --exclude 'test/**' src/server.ts",
     "migrate": "tsx src/server.ts migrate"
   },
   "dependencies": {
