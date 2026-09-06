@@ -104,6 +104,42 @@ it("derives the title from the first non-empty line of a long pasted prompt, cla
   expect(title.startsWith("widget widget widget")).toBe(true);
   expect(title).not.toContain("\n");
 });
+it("does not publish an empty first capture, but sends native title and completion updates for a published session", async () => {
+  await writeFile(event.transcriptPath, "");
+  expect((await capture(event, config)).chunks).toBe(0);
+  expect(await batches()).toEqual([]);
+
+  await appendFile(event.transcriptPath, promptLine("one", "Fallback prompt"));
+  await capture(event, config);
+  event = { ...event, title: "Native title", completed: true };
+  expect((await capture(event, config)).chunks).toBe(1);
+  const all = await batches();
+  const update = all.at(-1)!.chunks[0];
+  expect(update.messages).toEqual([]);
+  expect(update.meta).toMatchObject({ title: "Native title", completed: true });
+});
+it("does not turn metadata-only empty transcripts into completed sessions", async () => {
+  await writeFile(
+    event.transcriptPath,
+    JSON.stringify({ type: "ai-title", sessionId: "session-1", aiTitle: "Empty" }) + "\n",
+  );
+  expect((await capture(event, config)).chunks).toBe(0);
+  event = { ...event, completed: true };
+  expect((await capture(event, config)).chunks).toBe(0);
+  expect(await batches()).toEqual([]);
+});
+it("upgrades a placeholder native title to the first real prompt", async () => {
+  await writeFile(
+    event.transcriptPath,
+    JSON.stringify({ type: "ai-title", sessionId: "session-1", aiTitle: "Untitled session" }) +
+      "\n",
+  );
+  await capture(event, config);
+  await appendFile(event.transcriptPath, promptLine("one", "Real task title"));
+  await capture(event, config);
+  const [batch] = await batches();
+  expect(batch.chunks[0].meta.title).toBe("Real task title");
+});
 it("recovers the cursor and sequence map after a chunk-first crash", async () => {
   await writeFile(event.transcriptPath, line("one", "first"));
   await expect(

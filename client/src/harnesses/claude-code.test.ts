@@ -2,7 +2,13 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { cp, mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { claudeCodeChildren, claudeCodeEvent, claudeCodeLocate } from "./claude-code";
+import {
+  claudeCodeChildren,
+  claudeCodeEvent,
+  claudeCodeLocate,
+  claudeCodeTitle,
+} from "./claude-code";
+import { refreshEvent } from "./index";
 import type { Event } from "../capture";
 let folder: string, event: Event;
 const fixtures = new URL("../../../fixtures/claude-code/subagents/", import.meta.url);
@@ -31,6 +37,17 @@ it("maps the Stop and SessionEnd contract and ignores other events", () => {
   expect(claudeCodeEvent({ ...input, hook_event_name: "SessionEnd" })!.completed).toBe(true);
   expect(claudeCodeEvent({ ...input, hook_event_name: "PreToolUse" })).toBeUndefined();
   expect(() => claudeCodeEvent({ hook_event_name: "Stop" })).toThrow("session_id");
+});
+it("finds Claude's latest native title for an EOF drain refresh", async () => {
+  await writeFile(
+    event.transcriptPath,
+    [
+      JSON.stringify({ type: "ai-title", aiTitle: "Earlier title" }),
+      JSON.stringify({ type: "ai-title", payload: { aiTitle: "Current title" } }),
+    ].join("\n") + "\n",
+  );
+  expect(await claudeCodeTitle(event.transcriptPath)).toBe("Current title");
+  expect((await refreshEvent(event)).title).toBe("Current title");
 });
 it("discovers nested subagents from the flat folder and keeps the root as the parent", async () => {
   const found = await claudeCodeChildren(event);

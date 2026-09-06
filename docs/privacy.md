@@ -6,7 +6,8 @@ principles; this file is the checklist tests are written against.
 ## What leaves the laptop
 
 Per session: project key (normalised remote), branch history, cwd, title
-(first prompt), harness and version, models, token usage. Per message: kind
+(the harness's native title when available, otherwise the first prompt),
+harness and version, models, token usage. Per message: kind
 (prompt, reply, tool_call, summary), text, timestamp, model, usage.
 
 Tool calls are sent as the tool name plus the first 200 characters of the

@@ -23,6 +23,13 @@ it("drops thinking and tool results and counts one provider response once", () =
   ]);
   expect(result.messages.filter((item) => item.usage)).toHaveLength(1);
 });
+it("takes Claude's native resume title from its metadata record without emitting a message", () => {
+  const result = parseRecords("claude-code", [
+    { type: "ai-title", sessionId: "session", aiTitle: "Native session title" },
+  ]);
+  expect(result.meta.title).toBe("Native session title");
+  expect(result.messages).toEqual([]);
+});
 it("drops a /clear caveat and command echo, and titles from the first real prompt", () => {
   const result = parseRecords("claude-code", [
     {

@@ -42,6 +42,9 @@ export interface State {
   model?: string;
   start?: number;
   meta?: Meta;
+  // Set after the uploader receives an acknowledgement. Old states with messages are treated as
+  // published too, so an upgrade can still finish or retitle them.
+  published?: boolean;
   paused?: boolean;
   gap?: boolean;
   event: Event;
@@ -62,6 +65,11 @@ function deriveTitle(text: string): string {
   const cut = line.slice(0, TITLE_MAX);
   const boundary = cut.lastIndexOf(" ");
   return (boundary > 0 ? cut.slice(0, boundary) : cut).trimEnd() + "…";
+}
+// Harnesses use this while a thread has not earned a real label. It must not freeze out the
+// first genuine prompt, but remains a last-resort label for sessions that never receive one.
+function placeholderTitle(title: string | undefined): boolean {
+  return !title || /^(untitled(?: session)?|new chat)$/i.test(title.trim());
 }
 function inside(path: string, root: string) {
   const rel = relative(root, path);
@@ -199,7 +207,15 @@ export async function capture(
       return { status: "line exceeds window", chunks: 0, bytes: 0 };
     // A session-end after the last turn still has to deliver the completed flag.
     const closing = Boolean(event.completed) && Boolean(state.meta) && !state.meta?.completed;
-    if (end < 0 && !closing) return { status: "no complete records", chunks: 0, bytes: 0 };
+    // A harness title can arrive or improve after the transcript has reached EOF. Let that
+    // metadata-only update through, but never create a session solely because an empty file was
+    // observed for the first time.
+    const eventTitle = event.title
+      ? deriveTitle(scrubValue(event.title, extra) as string)
+      : undefined;
+    const titleChanged = Boolean(state.meta && eventTitle && eventTitle !== state.meta.title);
+    if (end < 0 && !closing && !titleChanged)
+      return { status: "no complete records", chunks: 0, bytes: 0 };
     const lines = buffer
       .subarray(0, end + 1)
       .toString("utf8")
@@ -225,11 +241,20 @@ export async function capture(
         cwd: event.cwd,
         branch: safe.meta.branch ?? state.meta?.branch ?? "",
         branches: [...new Set([...(state.meta?.branches ?? []), safe.meta.branch ?? ""])],
-        title:
-          state.meta?.title ??
-          (event.title ? deriveTitle(event.title) : undefined) ??
-          (firstPrompt ? deriveTitle(firstPrompt) : undefined) ??
-          "Untitled session",
+        // Native harness names are more useful than a prompt-derived fallback and may only be
+        // written after an earlier capture. The title is scrubbed before it is clamped.
+        title: (() => {
+          const native = (safe.meta.title ? deriveTitle(safe.meta.title) : undefined) ?? eventTitle;
+          const prompt = firstPrompt ? deriveTitle(firstPrompt) : undefined;
+          return (
+            (!placeholderTitle(native) ? native : undefined) ??
+            (!placeholderTitle(state.meta?.title) ? state.meta?.title : undefined) ??
+            prompt ??
+            native ??
+            state.meta?.title ??
+            "Untitled session"
+          );
+        })(),
         started_at: state.meta?.started_at ?? safe.messages[0]?.ts ?? new Date().toISOString(),
         completed: Boolean(state.meta?.completed || event.completed),
         spawn_depth: state.meta?.spawn_depth ?? event.spawnDepth ?? 0,
@@ -300,7 +325,13 @@ export async function capture(
       }
       batch.push(message);
     }
-    if (batch.length || state.meta?.completed !== meta.completed)
+    // Do not publish a brand-new empty session. Once a session has been published, however,
+    // completion and native-title changes need their own metadata-only chunk.
+    const published = Boolean(state.published || Object.keys(state.entries).length);
+    const metaChanged = Boolean(
+      published && state.meta && JSON.stringify(state.meta) !== JSON.stringify(meta),
+    );
+    if (batch.length || metaChanged)
       payloads.push({ protocolVersion: 1, chunkId: randomUUID(), meta, messages: batch });
     if (options.dryRun) return { status: "dry run", chunks: payloads.length, bytes: 0, payloads };
     // One envelope carries all chunks from a capture, so recovery cannot skip a partly-spooled batch.

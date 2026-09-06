@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { capture, type Event } from "./capture";
+import { capture, sessionFolder, type Event } from "./capture";
 import type { Config } from "./config";
 import { stateRoot, upgradePath } from "./state";
 import { drain } from "./upload";
@@ -144,6 +144,35 @@ it("captures and delivers a turn appended after the last hook read the transcrip
   expect(result).toMatchObject({ sent: 2, pending: 0 });
   const delivered = JSON.parse(String(sentBodies.at(-1))) as { messages: { seq: number }[] };
   expect(delivered.messages.map((message) => message.seq)).toEqual([2]);
+});
+it("refreshes a Claude native title at EOF after an older client consumed its metadata", async () => {
+  await writeFile(
+    event.transcriptPath,
+    JSON.stringify({
+      type: "user",
+      uuid: "prompt-1",
+      timestamp: new Date().toISOString(),
+      message: { content: "Fallback title" },
+    }) + "\n",
+  );
+  await capture(event, config);
+  await drain(config, { transport: transport((_, id) => accepted(id)), sleep });
+  await writeFile(
+    event.transcriptPath,
+    (await readFile(event.transcriptPath, "utf8")) +
+      JSON.stringify({ type: "ai-title", aiTitle: "Native title" }) +
+      "\n",
+  );
+  // Simulate a pre-upgrade client that advanced over ai-title but did not understand it.
+  const statePath = join(sessionFolder(config, event.source, event.sessionId), "state.json");
+  const state = JSON.parse(await readFile(statePath, "utf8")) as { offset: number };
+  state.offset = (await stat(event.transcriptPath)).size;
+  await writeFile(statePath, JSON.stringify(state));
+
+  const result = await drain(config, { transport: transport((_, id) => accepted(id)), sleep });
+  expect(result).toMatchObject({ sent: 1, pending: 0 });
+  const update = JSON.parse(sentBodies.at(-1)!) as { meta: { title: string }; messages: unknown[] };
+  expect(update).toMatchObject({ meta: { title: "Native title" }, messages: [] });
 });
 it("captures a subagent that appeared after the session was captured", async () => {
   await spool();

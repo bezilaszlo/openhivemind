@@ -3,7 +3,7 @@ import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { codexChildren, codexEvent } from "./codex";
+import { codexChildren, codexEvent, codexTitle } from "./codex";
 import { hookEvent } from "./index";
 const fixtures = fileURLToPath(new URL("../../../fixtures/codex/rollouts/", import.meta.url));
 const parent = "rollout-2026-09-05T10-00-00-fixture-thread-1.jsonl";
@@ -46,6 +46,17 @@ it("finds the rollout by filename when the hook sends no transcript path", async
   await expect(codexEvent(input({ transcript_path: null, session_id: "absent" }))).rejects.toThrow(
     "No rollout file",
   );
+});
+it("uses the latest Codex resume-menu title from its local index", async () => {
+  await writeFile(
+    join(home, "session_index.jsonl"),
+    [
+      JSON.stringify({ id: "fixture-thread-1", thread_name: "Old title" }),
+      JSON.stringify({ id: "fixture-thread-1", thread_name: "Current title" }),
+    ].join("\n") + "\n",
+  );
+  expect(await codexTitle("fixture-thread-1")).toBe("Current title");
+  expect((await codexEvent(input()))!.title).toBe("Current title");
 });
 it("names a child by its agent path and reads past the inherited parent history", async () => {
   const event = (await codexEvent(input({ hook_event_name: "SessionEnd", reason: "other" })))!;

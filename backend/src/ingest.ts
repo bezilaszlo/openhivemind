@@ -71,6 +71,7 @@ export async function ingest(
     };
     if (existing && existing.meta.remote !== meta.remote)
       throw new HttpError(409, "Session project cannot change");
+    const titleChanged = existing?.meta.title !== meta.title;
     await db.query(
       `INSERT INTO agent_session(id,org_id,owner_user_id,source,external_id,parent_external_id,remote,branch,meta,started_at,last_activity_at,completed) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) ON CONFLICT (org_id,source,external_id) DO UPDATE SET meta=$9,branch=$8,completed=agent_session.completed OR $12,last_activity_at=GREATEST(agent_session.last_activity_at,$11),received_at=now(),parent_external_id=COALESCE(agent_session.parent_external_id,$6)`,
       [
@@ -131,7 +132,7 @@ export async function ingest(
       if (row.seq !== committedThrough + 1) break;
       committedThrough = row.seq;
     }
-    if (changed || existing?.meta.completed !== meta.completed)
+    if (changed || titleChanged || existing?.meta.completed !== meta.completed)
       await db.query("INSERT INTO change(org_id,session_id,seq) VALUES($1,$2,$3)", [
         context.orgId,
         id,

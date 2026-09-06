@@ -1,5 +1,5 @@
 import { mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import lockfile from "proper-lockfile";
 import { ApiError, createApi, routes, type Chunk } from "@openhivemind/shared";
@@ -12,7 +12,7 @@ import {
   type Event,
   type State,
 } from "./capture";
-import { children } from "./harnesses/index";
+import { children, refreshEvent } from "./harnesses/index";
 import type { Config } from "./config";
 import { atomic, stateRoot, upgradePath } from "./state";
 export interface DrainOptions {
@@ -75,8 +75,13 @@ async function deliver(
     remaining.shift();
     sent++;
   }
-  if (!remaining.length) await rm(path, { force: true });
-  else if (sent || outcome.kind === "permanent")
+  if (!remaining.length) {
+    // Only an acknowledged chunk makes the local session eligible for later metadata-only
+    // completion/title updates. This prevents a metadata-only empty transcript from ever
+    // creating a server-side session.
+    await atomic(join(dirname(path), "state.json"), { ...envelope.after, published: true });
+    await rm(path, { force: true });
+  } else if (sent || outcome.kind === "permanent")
     await atomic(path, {
       ...envelope,
       chunks: remaining,
@@ -175,15 +180,18 @@ export async function drain(
   for (const item of states) {
     const path = join(item.parentPath, item.name);
     const state = JSON.parse(await readFile(path, "utf8")) as State;
+    const event = await refreshEvent(state.event);
     // The last turn of a session is written after its own hook read the transcript, so the
     // drain path is what closes the tail; paused sessions resume here once the cap is freed.
-    const behind = await stat(state.event.transcriptPath).then(
+    const behind = await stat(event.transcriptPath).then(
       (info) => info.size > state.offset || info.ino !== state.inode,
       () => false,
     );
-    if (state.paused || behind) {
+    // capture() is a no-op at EOF unless the refreshed title differs, so this also repairs
+    // already-spooled sessions without creating noise for unchanged ones.
+    if (state.paused || behind || event.title !== state.event.title) {
       try {
-        restarted = (await capture(state.event, config)).chunks > 0 || restarted;
+        restarted = (await capture(event, config)).chunks > 0 || restarted;
       } catch (error) {
         if (error && typeof error === "object" && "code" in error && error.code === "ENOENT")
           await atomic(path, { ...state, gap: true });
@@ -191,7 +199,7 @@ export async function drain(
       }
     }
     // Subagents that only appeared, or grew, after the session's last hook.
-    for (const child of await children(state.event)) {
+    for (const child of await children(event)) {
       if (!(await outstanding(child, config))) continue;
       try {
         restarted = (await capture(child, config)).chunks > 0 || restarted;

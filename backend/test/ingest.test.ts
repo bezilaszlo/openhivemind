@@ -102,6 +102,99 @@ it("does not advance contiguous acknowledgement past a gap", async () => {
   payload.messages[0]!.seq = 2;
   expect((await ingest(pool, owner, "external", payload)).committedThrough).toBe(0);
 });
+it("hides empty sessions unless their descendants contain a conversation", async () => {
+  const { sessions } = await import("../src/read");
+  const empty = chunk();
+  empty.messages = [];
+  await ingest(pool, owner, "empty", empty);
+  await ingest(pool, owner, "parent", empty);
+  const child = chunk();
+  child.meta.parent_external_id = "parent";
+  await ingest(pool, owner, "child", child);
+  expect((await sessions(pool, owner, {})).items.map((session) => session.external_id)).toEqual([
+    "parent",
+  ]);
+  expect(
+    (await sessions(pool, owner, { includeChildren: true })).items.map(
+      (session) => session.external_id,
+    ),
+  ).toEqual(expect.arrayContaining(["parent", "child"]));
+});
+it("announces metadata-only title updates", async () => {
+  const payload = chunk();
+  await ingest(pool, owner, "external", payload);
+  payload.meta.title = "Native harness title";
+  await ingest(pool, owner, "external", payload);
+  expect((await pool.query("SELECT seq FROM change ORDER BY cursor")).rows).toEqual([
+    { seq: 1 },
+    { seq: 1 },
+  ]);
+  expect((await pool.query("SELECT meta->>'title' title FROM agent_session")).rows[0]?.title).toBe(
+    "Native harness title",
+  );
+});
+it("pages newest session messages backward without guessing whether a full page has more", async () => {
+  const { sessionDetail } = await import("../src/read");
+  const payload = chunk();
+  const first = payload.messages[0]!;
+  payload.messages = [1, 2, 3].map((seq) => ({ ...first, seq, text: `message ${seq}` }));
+  await ingest(pool, owner, "external", payload);
+  const id = (await pool.query("SELECT id FROM agent_session WHERE external_id='external'"))
+    .rows[0]!.id;
+  const newest = await sessionDetail(pool, owner, id, { last: 2 });
+  expect(newest.messages.map((message) => message.seq)).toEqual([2, 3]);
+  expect(newest.cursor).not.toBeNull();
+  const older = await sessionDetail(pool, owner, id, { last: 2, cursor: newest.cursor! });
+  expect(older.messages.map((message) => message.seq)).toEqual([1]);
+  expect(older.cursor).toBeNull();
+  expect((await sessionDetail(pool, owner, id, { last: 3 })).cursor).toBeNull();
+
+  payload.messages = Array.from({ length: 500 }, (_, index) => ({
+    ...first,
+    seq: index + 1,
+    text: `message ${index + 1}`,
+  }));
+  await ingest(pool, owner, "external", payload);
+  await ingest(pool, owner, "external", {
+    ...payload,
+    chunkId: "chunk-2",
+    messages: [{ ...first, seq: 501, text: "message 501" }],
+  });
+  const forward = await sessionDetail(pool, owner, id, { maxChars: 200000 });
+  expect(forward.messages).toHaveLength(500);
+  expect(forward.messages.at(-1)?.seq).toBe(500);
+  expect(forward.cursor).not.toBeNull();
+  expect(
+    (
+      await sessionDetail(pool, owner, id, { cursor: forward.cursor!, maxChars: 200000 })
+    ).messages.map((message) => message.seq),
+  ).toEqual([501]);
+});
+it("keeps whole messages recoverable across a soft character window", async () => {
+  const { sessionDetail } = await import("../src/read");
+  const payload = chunk();
+  payload.messages = [1, 2].map((seq) => ({
+    ...payload.messages[0]!,
+    seq,
+    text: String(seq).repeat(150),
+  }));
+  await ingest(pool, owner, "whole", payload);
+  const id = (await pool.query("SELECT id FROM agent_session WHERE external_id='whole'")).rows[0]!
+    .id;
+  const first = await sessionDetail(pool, owner, id, { maxChars: 200, wholeMessages: true });
+  expect(first.messages).toHaveLength(1);
+  expect(first.messages[0]?.text).toHaveLength(150);
+  expect(first.messages[0]?.truncated).toBeUndefined();
+  expect(first.cursor).not.toBeNull();
+  const second = await sessionDetail(pool, owner, id, {
+    cursor: first.cursor!,
+    maxChars: 200,
+    wholeMessages: true,
+  });
+  expect(second.messages).toHaveLength(1);
+  expect(second.messages[0]?.text).toHaveLength(150);
+  expect(second.cursor).toBeNull();
+});
 it("rejects parent cycles and expired historic ingest", async () => {
   const payload = chunk();
   payload.meta.parent_external_id = "external";

@@ -84,6 +84,13 @@ export function parseRecords(
       if (data.cwd) meta.cwd = str(data.cwd);
       if (data.version) meta.version = str(data.version);
       if (branch) meta.branch = branch;
+      // Claude writes its resume-menu title as a separate record, after the conversation may
+      // already have been captured. It is metadata, never a chat message.
+      if (data.type === "ai-title") {
+        const title = str(data.aiTitle, str(payload.aiTitle));
+        if (title.trim()) meta.title = title;
+        return;
+      }
       if (data.type !== "user" && data.type !== "assistant") return;
       if (data.type === "user" && data.isMeta) return;
       model = str(message.model) || model;

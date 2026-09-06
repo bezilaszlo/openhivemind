@@ -1,4 +1,4 @@
-import { open, readdir } from "node:fs/promises";
+import { open, readFile, readdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, dirname, join, sep } from "node:path";
 import type { Event } from "../capture";
@@ -6,6 +6,7 @@ import type { Event } from "../capture";
 const FIRST_LINE = 64 * 1024;
 const ROLLOUT = /^rollout-.+\.jsonl$/;
 const sessionsRoot = () => join(process.env["CODEX_HOME"] || join(homedir(), ".codex"), "sessions");
+const codexHome = () => process.env["CODEX_HOME"] || join(homedir(), ".codex");
 const record = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -15,6 +16,51 @@ interface Rollout {
   parent?: string;
   cwd?: string;
   title?: string;
+}
+
+// Codex keeps the resume-menu label in two local indexes. The append-only JSONL is the most
+// current view; SQLite is a read-only fallback for sessions not represented there yet.
+export async function codexTitle(sessionId: string): Promise<string | undefined> {
+  try {
+    const lines = (await readFile(join(codexHome(), "session_index.jsonl"), "utf8"))
+      .split("\n")
+      .filter(Boolean);
+    for (let index = lines.length - 1; index >= 0; index--) {
+      try {
+        const item = record(JSON.parse(lines[index]!) as unknown);
+        if (
+          item.id === sessionId &&
+          typeof item.thread_name === "string" &&
+          item.thread_name.trim()
+        )
+          return item.thread_name;
+      } catch {
+        // A concurrently appended partial line is retried on the next capture.
+      }
+    }
+  } catch {
+    // Older Codex releases may not have an index yet; SQLite below remains available.
+  }
+  try {
+    // tsup rewrites ESM `node:sqlite` imports to a non-existent bare `sqlite` package. The
+    // bundle banner supplies this Node-native require and preserves the protocol-prefixed name.
+    const { DatabaseSync } = require(["node", "sqlite"].join(":")) as typeof import("node:sqlite");
+    const database = new DatabaseSync(join(codexHome(), "state_5.sqlite"), { readOnly: true });
+    try {
+      const row = database
+        .prepare("SELECT title, name, first_user_message FROM threads WHERE id = ?")
+        .get(sessionId) as Record<string, unknown> | undefined;
+      for (const field of ["title", "name", "first_user_message"]) {
+        const title = row?.[field];
+        if (typeof title === "string" && title.trim()) return title;
+      }
+    } finally {
+      database.close();
+    }
+  } catch {
+    // Capture must keep working while Codex migrates or rotates its local database.
+  }
+  return undefined;
 }
 // The child's own session_meta is the first line and the parent's is copied in below it, so only
 // the first record is ever read. A subagent is handed its task over an encrypted channel and
@@ -73,11 +119,13 @@ export async function codexEvent(input: unknown): Promise<Event | undefined> {
   const given = value["transcript_path"];
   const transcriptPath = typeof given === "string" && given ? given : await findRollout(sessionId);
   if (!transcriptPath) throw new Error("No rollout file for this Codex session");
+  const title = await codexTitle(sessionId);
   return {
     sessionId,
     transcriptPath,
     cwd,
     source: "codex",
+    ...(title ? { title } : {}),
     ...(name === "SessionEnd" ? { completed: true } : {}),
   };
 }

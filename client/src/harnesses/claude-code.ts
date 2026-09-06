@@ -28,6 +28,30 @@ interface AgentMeta {
   spawnDepth?: number;
   model?: string;
 }
+
+// Claude writes the resume-menu title into its JSONL rather than hook input. Re-read the local
+// transcript during drain so a title generated after the final captured turn can still update.
+export async function claudeCodeTitle(transcriptPath: string): Promise<string | undefined> {
+  let lines: string[];
+  try {
+    lines = (await readFile(transcriptPath, "utf8")).split("\n").filter(Boolean);
+  } catch {
+    return undefined;
+  }
+  for (let index = lines.length - 1; index >= 0; index--) {
+    try {
+      const record = JSON.parse(lines[index]!) as Record<string, unknown>;
+      if (record.type !== "ai-title") continue;
+      const direct = record.aiTitle;
+      const payload = record.payload as Record<string, unknown> | undefined;
+      const title = typeof direct === "string" ? direct : payload?.aiTitle;
+      if (typeof title === "string" && title.trim()) return title;
+    } catch {
+      // A partial final line is normal while Claude appends; the next drain retries it.
+    }
+  }
+  return undefined;
+}
 // Claude Code keeps every subagent flat under `<project>/<session>/subagents/`, nested ones
 // included; spawnDepth is the only nesting signal we forward, the parent stays the root session.
 export async function claudeCodeChildren(event: Event): Promise<Event[]> {
