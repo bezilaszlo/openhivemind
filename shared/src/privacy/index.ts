@@ -13,26 +13,45 @@ export function ignorePatterns(text: string): RegExp[] {
     }
   });
 }
+const CANDIDATE = 32;
+function secretLike(value: string): boolean {
+  const classes = [/[a-z]/, /[A-Z]/, /\d/, /[_+=-]/].filter((pattern) =>
+    pattern.test(value),
+  ).length;
+  const entropy = [...new Set(value)].reduce((sum, char) => {
+    const p = value.split(char).length - 1;
+    const ratio = p / value.length;
+    return sum - ratio * Math.log2(ratio);
+  }, 0);
+  return classes >= 3 && entropy >= 3.5;
+}
+// A fully qualified Java name or a React filename packs its words into one long run with the odd
+// digit in it. They are still words: CamelCase splits them into several real ones covering most of
+// the run, where a random run breaks into two- and three-character noise.
+function wordy(run: string): boolean {
+  const words = run.split(/(?=[A-Z])|_/).filter((word) => /^[A-Za-z]{4,}$/.test(word));
+  return words.length >= 3 && words.join("").length >= run.length * 0.6;
+}
+// A path, URL or package name is words held apart by separators, so no single run of letters and
+// digits inside it is long and random enough to be a secret on its own. Appending `.x` or `/x` to
+// a secret leaves that run intact, which is why the separator alone must never buy an exemption.
+function pathLike(value: string): boolean {
+  if (!/[/.]/.test(value)) return false;
+  return !(value.match(/[A-Za-z0-9]+/g) ?? []).some(
+    (run) => run.length >= CANDIDATE && secretLike(run) && !wordy(run),
+  );
+}
 export function scrub(text: string, extra: readonly RegExp[] = []): string {
   for (const { kind, regex } of patterns)
     text = text.replace(new RegExp(regex.source, regex.flags), `[REDACTED:${kind}]`);
-  text = text.replace(/\b[A-Za-z0-9_+/=.-]{32,}\b/g, (value) => {
+  text = text.replace(new RegExp(`\\b[A-Za-z0-9_+/=.-]{${CANDIDATE},}\\b`, "g"), (value) => {
     if (
       /^[a-f\d]{32,}$/i.test(value) ||
       /^[a-f\d]{8}(?:-[a-f\d]{4}){3}-[a-f\d]{12}$/i.test(value) ||
-      value.includes("/") ||
-      value.includes(".")
+      pathLike(value)
     )
       return value;
-    const classes = [/[a-z]/, /[A-Z]/, /\d/, /[_+=-]/].filter((pattern) =>
-      pattern.test(value),
-    ).length;
-    const entropy = [...new Set(value)].reduce((sum, char) => {
-      const p = value.split(char).length - 1;
-      const ratio = p / value.length;
-      return sum - ratio * Math.log2(ratio);
-    }, 0);
-    return classes >= 3 && entropy >= 3.5 ? "[REDACTED:entropy]" : value;
+    return secretLike(value) ? "[REDACTED:entropy]" : value;
   });
   for (const pattern of extra)
     text = text.replace(

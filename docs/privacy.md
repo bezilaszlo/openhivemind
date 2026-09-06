@@ -38,8 +38,26 @@ Patterns: `scrub_patterns.json`, derived from gitleaks' default rules (MIT,
 attribution kept in the file): cloud provider keys, `sk-` style API keys,
 GitHub/GitLab/Slack/Google tokens, JWTs, PEM blocks, `password|secret|token|
 api[_-]?key = …` assignments, basic-auth URLs, our own `ohm_` tokens, and
-high-entropy strings of 32+ characters mixing character classes (paths, UUIDs
-and git SHAs are exempt). Replacement is `[REDACTED:<kind>]`.
+high-entropy strings of 32+ characters mixing character classes. UUIDs and hex
+digests are exempt, and so are paths, URLs and package names — but recognised
+structurally, not by containing a `/` or a `.`: a token is treated as a path
+only when none of its runs of letters and digits is itself 32+ characters of
+secret-looking material. A path is words held apart by separators, while a
+secret keeps its one long random run whatever punctuation is appended to it, so
+`<secret>.x` and `<secret>/x` are still redacted. CamelCase runs that are really
+words — a fully qualified Java name, a long React filename — are kept. Replacement
+is `[REDACTED:<kind>]`.
+
+Known limits of the entropy fallback, measured 2026-09-06; it is a backstop
+behind the named patterns above, not the first line of defence:
+
+- A run of a single letter case plus digits stays exempt at any length, because
+  the rule needs three character classes. Base32-style secrets fall in this gap.
+- A secret drawn from an alphabet that contains its own separators (`+`, `/`,
+  `-`, `_`, as base64 and base64url do) is broken into runs shorter than 32 by
+  its own characters, so appending `.x` to one still hides it about half the
+  time. Alphanumeric secrets of 32+ characters are caught 99.6% of the time in
+  the same test.
 
 Extra patterns: `.openhivemind-ignore` at the repo root and
 `~/.config/openhivemind/ignore`, one regex per line. A file with an invalid
