@@ -5,6 +5,7 @@ import { routes, type Chunk } from "@openhivemind/shared";
 import { HttpError, type Handler } from "./app";
 import { authenticate, hash, mintToken, headers, type Context } from "./auth/bridge";
 import type { Auth } from "./auth/index";
+import { isTrustedOrigin } from "./auth/origin";
 import { ingest, purge, orgWrite } from "./ingest";
 import { sessions, sessionDetail, search, usage, type Filter } from "./read";
 import { transaction } from "./db/index";
@@ -33,7 +34,8 @@ export function handlers(
   return {
     inviteAccept: async (request) => {
       browser(request);
-      if (request.headers.origin !== url) throw new HttpError(403, "Untrusted origin");
+      if (!isTrustedOrigin(request.headers.origin, url))
+        throw new HttpError(403, "Untrusted origin");
       const session = await auth.api.getSession({ headers: headers(request) });
       if (!session) throw new HttpError(401, "Sign in required");
       return transaction(pool, async (db) => {

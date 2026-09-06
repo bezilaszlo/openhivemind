@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import type pg from "pg";
 import type { Auth } from "./index";
+import { isTrustedOrigin } from "./origin";
 import { HttpError } from "../app";
 import { transaction } from "../db/index";
 export const hash = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -35,7 +36,10 @@ export async function authenticate(
     if (!result.rows[0]) throw new HttpError(401, "Invalid token");
     return result.rows[0];
   }
-  if (!["GET", "HEAD"].includes(request.method) && request.headers.origin !== baseUrl)
+  if (
+    !["GET", "HEAD"].includes(request.method) &&
+    !isTrustedOrigin(request.headers.origin, baseUrl)
+  )
     throw new HttpError(403, "Untrusted origin");
   const session = await auth.api.getSession({ headers: headers(request) });
   if (!session) throw new HttpError(401, "Sign in required");

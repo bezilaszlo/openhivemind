@@ -138,3 +138,94 @@ it("relays Better Auth rejections as problem+json so the viewer can show the rea
     detail: expect.stringMatching(/too short/i),
   });
 });
+function loopbackTestApp(configUrl: string, secret: string) {
+  const authInstance = createAuth(pool, { url: configUrl, secret });
+  const testApp = buildApp({
+    handlers: {
+      tokenCreate: async (request) =>
+        mintToken(
+          pool,
+          await authenticate(pool, authInstance, request, configUrl),
+          (request.body as { name: string }).name,
+        ),
+    },
+  });
+  return { authInstance, testApp };
+}
+it("trusts every loopback spelling on the same port, for sign-in and for a cookie-authenticated API call", async () => {
+  const loopbackUrl = "http://127.0.0.1:4001";
+  const { authInstance, testApp } = loopbackTestApp(
+    loopbackUrl,
+    "integration-only-not-a-production-secret-0004",
+  );
+  const loopbackApp = await testApp;
+  await mountAuth(loopbackApp, pool, authInstance, loopbackUrl);
+  await loopbackApp.ready();
+  try {
+    // The dev stack configures APP_URL with one loopback spelling, but a developer's browser may
+    // sign in from another on the same port; both must be trusted as the same origin.
+    const register = await loopbackApp.inject({
+      method: "POST",
+      url: "/api/auth/sign-up/email",
+      headers: { origin: "http://localhost:4001" },
+      payload: {
+        name: "Loopback developer",
+        email: "loopback@example.test",
+        password: "integration-password-123",
+      },
+    });
+    expect(register.statusCode, register.body).toBe(200);
+    const signIn = await loopbackApp.inject({
+      method: "POST",
+      url: "/api/auth/sign-in/email",
+      headers: { origin: "http://[::1]:4001" },
+      payload: { email: "loopback@example.test", password: "integration-password-123" },
+    });
+    expect(signIn.statusCode, signIn.body).toBe(200);
+    const cookie = signIn.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+    // The API path goes through authenticate() in auth/bridge.ts, not Better Auth's own origin
+    // check; it needs the same loopback equivalence for a cookie-authenticated POST.
+    const token = await loopbackApp.inject({
+      method: "POST",
+      url: "/api/v1/me/tokens",
+      headers: { cookie, origin: "http://localhost:4001" },
+      payload: { name: "laptop" },
+    });
+    expect(token.statusCode, token.body).toBe(200);
+  } finally {
+    await loopbackApp.close();
+  }
+});
+it("still rejects a mismatched origin on the API path for a non-loopback config URL", async () => {
+  const publicUrl = "https://hivemind.example.test";
+  const { authInstance, testApp } = loopbackTestApp(
+    publicUrl,
+    "integration-only-not-a-production-secret-0005",
+  );
+  const publicApp = await testApp;
+  await mountAuth(publicApp, pool, authInstance, publicUrl);
+  await publicApp.ready();
+  try {
+    const register = await publicApp.inject({
+      method: "POST",
+      url: "/api/auth/sign-up/email",
+      headers: { origin: publicUrl },
+      payload: {
+        name: "Stranger",
+        email: "stranger@example.test",
+        password: "integration-password-123",
+      },
+    });
+    expect(register.statusCode, register.body).toBe(200);
+    const cookie = register.cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join("; ");
+    const token = await publicApp.inject({
+      method: "POST",
+      url: "/api/v1/me/tokens",
+      headers: { cookie, origin: "https://not-hivemind.example.test" },
+      payload: { name: "laptop" },
+    });
+    expect(token.statusCode).toBe(403);
+  } finally {
+    await publicApp.close();
+  }
+});

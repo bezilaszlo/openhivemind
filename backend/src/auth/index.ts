@@ -4,6 +4,7 @@ import { organization, genericOAuth, createAccessControl } from "better-auth/plu
 import { drizzle } from "drizzle-orm/node-postgres";
 import type pg from "pg";
 import * as schema from "../db/schema";
+import { trustedOrigins } from "./origin";
 const ac = createAccessControl({
   organization: ["update", "delete"],
   member: ["create", "update", "delete"],
@@ -19,7 +20,7 @@ export function createAuth(pool: pg.Pool, config: AuthConfig) {
     baseURL: config.url,
     basePath: "/api/auth",
     secret: config.secret,
-    trustedOrigins: [config.url],
+    trustedOrigins: trustedOrigins(config.url),
     database: drizzleAdapter(drizzle(pool, { schema }), { provider: "pg", schema }),
     emailAndPassword: { enabled: true, minPasswordLength: 12 },
     account: { accountLinking: { enabled: false } },
