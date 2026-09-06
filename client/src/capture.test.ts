@@ -55,6 +55,13 @@ const line = (uuid: string, text: string) =>
     timestamp: new Date().toISOString(),
     message: { id: uuid, content: [{ type: "text", text }] },
   }) + "\n";
+const promptLine = (uuid: string, text: string) =>
+  JSON.stringify({
+    type: "user",
+    uuid,
+    timestamp: new Date().toISOString(),
+    message: { content: text },
+  }) + "\n";
 async function batches() {
   const root = stateRoot(config);
   const files = await readdir(root, { recursive: true });
@@ -84,6 +91,18 @@ it("spools only scrubbed content and resumes complete records incrementally", as
       batch.chunks.flatMap((chunk: { messages: unknown[] }) => chunk.messages),
     ),
   ).toHaveLength(2);
+});
+it("derives the title from the first non-empty line of a long pasted prompt, clamped to a word boundary", async () => {
+  const filler = "widget ".repeat(700); // ~4.9 KB, well past the old 4096-char raw-slice title
+  const prompt = "\n\n  " + filler + "\nSecond paragraph, irrelevant to the title.";
+  await writeFile(event.transcriptPath, promptLine("one", prompt));
+  await capture(event, config);
+  const [batch] = await batches();
+  const title = batch.chunks[0].meta.title as string;
+  expect(title.length).toBeLessThanOrEqual(120);
+  expect(title.endsWith("…")).toBe(true);
+  expect(title.startsWith("widget widget widget")).toBe(true);
+  expect(title).not.toContain("\n");
 });
 it("recovers the cursor and sequence map after a chunk-first crash", async () => {
   await writeFile(event.transcriptPath, line("one", "first"));

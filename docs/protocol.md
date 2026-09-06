@@ -132,6 +132,12 @@ Haiku runs with logging hooks in a scratch repo).
 
 Adapter: `Stop` (async) → `turn`; `SessionEnd` → `session-end` (spool only).
 Capture cursor: byte offset; partial trailing line left for the next read.
+The root session's title is derived from its first prompt: the first
+non-empty line, whitespace-collapsed and clamped to about 120 characters on a
+word boundary with an ellipsis, never the raw prompt — a long pasted brief
+does not become a multi-kilobyte title. An explicit `event.title` (used by
+subagents and future harnesses) gets the same clamp. Once set, a session's
+title never changes.
 Subagent files are discovered from the transcript directory on each turn and
 on every drain re-capture, and carry their own cursors and spool state exactly
 like the root. Nesting is flattened on purpose: every child, at any depth, is
@@ -165,7 +171,7 @@ hook JSON schemas, and its `hooks/list` app-server route).
 | Compaction | Top-level `compacted` `{message, replacement_history, window_*}`, appended |
 | Subagents | Separate rollout files: `session_meta.id` = child thread, `session_meta.session_id` = parent, `thread_source` ∈ {subagent, guardian_review, …}, `agent_path` / `agent_nickname`. The child file **opens with the parent's history and the parent's `session_meta` copied in**, all below `subagent_history_start_ordinal`; only the first `session_meta` and records from that ordinal on belong to the child, and everything below it would otherwise be captured twice. A subagent receives its task as an encrypted `agent_message`, never as a prompt, so `agent_path` is its only title |
 | Append-only | Yes; `compacted` appends; resume reuses id and file (`SessionStart.source = resume`) |
-| Title | No field. The **first** user message is not the developer's: Codex opens every thread with `agents_md.instructions` and `environments.environment_context` blocks, and injects an `environment_context` refresh on later turns. `internal_chat_message_metadata_passthrough.content_item_kinds[i]` labels each content block; only `user.text` is typed by the developer. Injected blocks are dropped and the title is the first `user.text` block |
+| Title | No field. The **first** user message is not the developer's: Codex opens every thread with `agents_md.instructions` and `environments.environment_context` blocks, and injects an `environment_context` refresh on later turns. `internal_chat_message_metadata_passthrough.content_item_kinds[i]` labels each content block; only `user.text` is typed by the developer. Injected blocks are dropped and the title is derived from the first `user.text` block the same way as the root session's title above: its first non-empty line, whitespace-collapsed and clamped to about 120 characters on a word boundary, never the raw block |
 | Hook stdin | Per the CLI's embedded schemas: every event carries `session_id, cwd, hook_event_name, transcript_path` (nullable). `Stop` adds `model, permission_mode, turn_id, stop_hook_active, last_assistant_message`; `SessionEnd` adds only `reason` (const `other`) and carries **no** `model`, `permission_mode` or `turn_id`. `transcript_path` is populated on 0.153.4 although the docs say otherwise; keep the filename fallback `rollout-*-<session_id>.jsonl` |
 | Hook events | `PreToolUse, PermissionRequest, PostToolUse, PreCompact, PostCompact, SessionStart, SessionEnd, UserPromptSubmit, Stop, SubagentStart, SubagentStop, Interrupt` |
 | Hook trust | Every hook — plugin-bundled, user or repo-local — is discovered as `untrusted` and is **skipped in silence** until it is trusted: nothing runs, nothing is logged, and `codex doctor` says nothing. Trust is `[hooks.state."<key>"] enabled = true, trusted_hash = "sha256:…"` in `config.toml`, keyed `<pluginId>:hooks/hooks.json:<event>:<group>:<index>` for plugin hooks and `<path>:<event>:<group>:<index>` otherwise; the TUI writes it. `codex exec` cannot grant it. The app-server route `hooks/list` reports every hook with its `trustStatus` and `currentHash`, which is the value to trust |

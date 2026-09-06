@@ -22,7 +22,8 @@ export function SessionRow({ session }: { session: Session }) {
         <Link
           to="/sessions/$id"
           params={{ id: session.id }}
-          className="text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground hover:text-accent-ink"
+          title={session.title || "Untitled session"}
+          className="min-w-0 max-w-full truncate text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground hover:text-accent-ink"
         >
           {session.title || "Untitled session"}
         </Link>

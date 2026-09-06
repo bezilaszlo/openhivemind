@@ -51,6 +51,18 @@ export interface Envelope {
   after: State;
   attempts?: number;
 }
+const TITLE_MAX = 120;
+// A prompt (or an explicit event.title) can be an entire pasted brief; the title is the first
+// non-empty line only, collapsed and clamped on a word boundary so it reads as a title, not a essay.
+function deriveTitle(text: string): string {
+  const line = (text.split("\n").find((candidate) => candidate.trim().length > 0) ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (line.length <= TITLE_MAX) return line;
+  const cut = line.slice(0, TITLE_MAX);
+  const boundary = cut.lastIndexOf(" ");
+  return (boundary > 0 ? cut.slice(0, boundary) : cut).trimEnd() + "…";
+}
 function inside(path: string, root: string) {
   const rel = relative(root, path);
   return rel === "" || (!rel.startsWith("../") && rel !== ".." && !isAbsolute(rel));
@@ -202,6 +214,7 @@ export async function capture(
       ...(restart ? {} : { start: state.start }),
     });
     const safe = scrubValue(parsed, extra) as typeof parsed;
+    const firstPrompt = safe.messages.find((message) => message.kind === "prompt")?.text;
     const meta = scrubValue(
       {
         ...state.meta,
@@ -214,8 +227,8 @@ export async function capture(
         branches: [...new Set([...(state.meta?.branches ?? []), safe.meta.branch ?? ""])],
         title:
           state.meta?.title ??
-          event.title ??
-          safe.messages.find((message) => message.kind === "prompt")?.text.slice(0, 4096) ??
+          (event.title ? deriveTitle(event.title) : undefined) ??
+          (firstPrompt ? deriveTitle(firstPrompt) : undefined) ??
           "Untitled session",
         started_at: state.meta?.started_at ?? safe.messages[0]?.ts ?? new Date().toISOString(),
         completed: Boolean(state.meta?.completed || event.completed),

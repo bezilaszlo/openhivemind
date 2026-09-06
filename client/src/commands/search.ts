@@ -62,7 +62,7 @@ export async function search(config: Config, flags: Options): Promise<Result> {
     lines.push(
       heading(
         format,
-        `${group.session.title || "(untitled)"} — ${group.session.id} [${group.session.source}] ${group.hits.length} hit(s)`,
+        `${truncate(group.session.title || "(untitled)", 100)} — ${group.session.id} [${group.session.source}] ${group.hits.length} hit(s)`,
       ),
     );
     for (const hit of group.hits.slice(0, MAX_SNIPPETS_PER_SESSION)) {

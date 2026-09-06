@@ -108,7 +108,12 @@ export function AgentList({ sessions }: { sessions: Session[] }) {
                     <span aria-hidden="true" className="text-muted">
                       {"↳".repeat(depth)}
                     </span>
-                    <span className="min-w-0 flex-1">{child.title || "Untitled session"}</span>
+                    <span
+                      className="min-w-0 flex-1 truncate"
+                      title={child.title || "Untitled session"}
+                    >
+                      {child.title || "Untitled session"}
+                    </span>
                   </span>
                   <span className="flex flex-wrap items-center gap-2 text-muted">
                     <ModelChip

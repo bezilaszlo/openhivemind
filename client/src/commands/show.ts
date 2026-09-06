@@ -78,7 +78,7 @@ export async function show(config: Config, flags: Options): Promise<Result> {
   lines.push(
     heading(
       format,
-      `${response.session.title || "(untitled)"} — ${response.session.id} [${response.session.source}]`,
+      `${truncate(response.session.title || "(untitled)", 100)} — ${response.session.id} [${response.session.source}]`,
     ),
   );
   for (const message of messages) lines.push(formatMessage(format, message));

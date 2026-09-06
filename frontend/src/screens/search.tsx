@@ -137,12 +137,13 @@ export function SearchPage() {
                   {hit.kind} · #{hit.seq}
                 </span>
               </div>
-              <h2 className="mb-2 text-[0.9375rem] font-semibold">
+              <h2 className="mb-2 truncate text-[0.9375rem] font-semibold">
                 <Link
                   className="text-foreground hover:text-accent-ink"
                   to="/sessions/$id"
                   params={{ id: hit.session.id }}
                   search={{ around: hit.seq }}
+                  title={hit.session.title}
                 >
                   {hit.session.title}
                 </Link>
