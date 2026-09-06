@@ -55,9 +55,42 @@ reset tables only in the run-owned database. Tests sharing a transaction should
 use rollback isolation. Use `drizzle-seed` for deterministic, schema-typed fixture data; the rollback
 helper lives beside integration tests. No testcontainers are needed.
 
-`docker compose up --build` starts the current development server at
-http://localhost:3000 and the runtime API reference at `/docs`. An initial auth
-secret is generated in the persistent app-state volume. See
+The quickest loop runs both apps on the host against Postgres in a container:
+
+```
+docker compose up -d postgres
+export DATABASE_URL=postgres://openhivemind:development@127.0.0.1:55432/openhivemind
+pnpm --filter @openhivemind/backend migrate
+pnpm dev
+```
+
+`pnpm dev` serves the backend on http://localhost:3000 and Vite on
+http://127.0.0.1:5173, which proxies `/api` to it. Nothing in the repo reads a
+`.env` file, so `DATABASE_URL` has to be exported or set per command; Postgres is
+published on 55432 to stay clear of a local server on 5432, and
+`POSTGRES_PASSWORD` overrides the development default on both sides. Rerun the
+migrate command whenever migrations change.
+
+`pnpm dev:stack` runs the same loop entirely in containers, layering
+`compose.dev.yml` over `compose.yml`: a `backend` service running tsx and a
+`viewer` service running Vite from one `openhivemind-dev` image, each with its
+own logs and restarting only on its own sources. That backend migrates before
+starting its watch, so a fresh Postgres volume needs no manual step. Vite
+hot-reloads on http://127.0.0.1:5173 and reaches the backend by service name
+through `VITE_API_PROXY`, which also overrides the target for host-side Vite.
+Only Vite and Postgres are published, and changing a manifest or the lockfile
+rebuilds the dev image.
+
+`docker compose up -d --build` deploys the production shape and nothing else: one
+`openhivemind-app` container serving the API and the built viewer on
+http://localhost:3000, with the runtime API reference at `/docs`.
+
+On first start the server generates an auth secret into a persistent volume —
+`app-state` in production, a separate `dev-state` for the dev backend, because
+that container runs as root and a root-owned secret would lock the production
+image out. Production writes it as the unprivileged `node` user; if the volume is
+not writable the server refuses to start and prints how to hand it over, or set
+`AUTH_SECRET` to skip the file. See
 [the implementation plan](docs/plans/mvp.md) for remaining gates.
 
 ## How it works
@@ -87,7 +120,7 @@ backend/     server and API
 frontend/    React viewer, typed shared-schema API wrapper
 client/      hook, CLI, harness plugin manifests, agent skills
 shared/      schemas, parsers, privacy and search grammar
-compose.yml  app + Postgres; Dockerfile at the root
+compose.yml  app + Postgres; compose.dev.yml splits dev in two
 docs/        decisions, protocol, search semantics
 ```
 

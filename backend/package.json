@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "files": [
+    "dist",
+    "src/db/migrations"
+  ],
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "migrate": "tsx src/server.ts migrate"
   },
   "dependencies": {
     "@fastify/static": "10.1.3",

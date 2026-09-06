@@ -4,6 +4,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "dev": "pnpm --parallel --filter @openhivemind/backend --filter @openhivemind/frontend dev",
+    "dev:stack": "docker compose -f compose.yml -f compose.dev.yml up --build --watch",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --deny-warnings .",

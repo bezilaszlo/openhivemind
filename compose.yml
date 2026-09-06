@@ -1,11 +1,15 @@
+# Production shape, and what a plain `docker compose up` deploys. Local
+# development layers compose.dev.yml on top of it via `pnpm dev:stack`.
 services:
   postgres:
     image: postgres:17
+    restart: unless-stopped
     environment:
       POSTGRES_DB: openhivemind
       POSTGRES_USER: openhivemind
-      POSTGRES_PASSWORD: development
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-development}
     ports:
+      # Loopback only. Host-native dev and the integration tests reach Postgres here.
       - "127.0.0.1:55432:5432"
     volumes:
       - postgres:/var/lib/postgresql/data
@@ -15,11 +19,15 @@ services:
       timeout: 5s
       retries: 30
   app:
-    build: .
+    image: openhivemind-app
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      DATABASE_URL: postgres://openhivemind:development@postgres:5432/openhivemind
+      DATABASE_URL: postgres://openhivemind:${POSTGRES_PASSWORD:-development}@postgres:5432/openhivemind
       APP_URL: ${APP_URL:-http://localhost:3000}
       AUTH_SECRET: ${AUTH_SECRET:-}
       SERVER_STATE_DIR: /data

@@ -3,5 +3,8 @@ import react from "@vitejs/plugin-react";
 import tailwind from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwind()],
-  server: { proxy: { "/api": "http://localhost:3000" } },
+  server: {
+    host: process.env.VITE_HOST ?? "127.0.0.1",
+    proxy: { "/api": process.env.VITE_API_PROXY ?? "http://localhost:3000" },
+  },
 });
