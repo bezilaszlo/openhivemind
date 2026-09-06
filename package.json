@@ -13,6 +13,7 @@
     "format:check": "oxfmt --check .",
     "test": "vitest run",
     "build": "pnpm -r build",
+    "build:cli": "pnpm --filter openhivemind build",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:pack": "pnpm --filter openhivemind build && node client/test/pack.mjs"
   },

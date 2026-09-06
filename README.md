@@ -16,31 +16,40 @@ end to end through their native plugins, the spool and the uploader, and the
 capture and browser login are not implemented yet. Full release acceptance
 remains unfinished; this is not v1.
 
-## Capture a Claude Code session
+## Install and configure the CLI
 
-In Claude Code, `/plugin marketplace add openhivemind/openhivemind` then
-`/plugin install openhivemind`, or `claude --plugin-dir client/plugins/claude-code`
-from a clone. Then connect the laptop to your server:
+Requires Node.js 24. Install the published CLI before adding an agent plugin:
 
 ```
+npm install --global openhivemind
 openhivemind setup https://hivemind.example.com --token <personal access token>
 openhivemind doctor
 ```
 
+The token comes from the tokens page in the viewer and is read from stdin when
+`--token` is omitted. `setup` accepts repeatable `--root <dir>` and
+`--exclude <dir>`; with no roots, every git checkout with an `origin` remote is
+captured.
+
+## Capture a Claude Code session
+
+After installing and configuring the CLI, run
+`/plugin marketplace add openhivemind/openhivemind` and then
+`/plugin install openhivemind` in Claude Code. For development from a clone,
+start Claude Code with `claude --plugin-dir client/plugins/claude-code` instead.
+
 ## Capture a Codex CLI session
 
-`codex plugin marketplace add openhivemind/openhivemind` then
+After installing and configuring the CLI, run
+`codex plugin marketplace add openhivemind/openhivemind` and then
 `codex plugin add openhivemind@openhivemind`, or point the marketplace at a
-clone. Codex runs the plugin's bundled hooks only after they are
-trusted, which is granted from the Codex TUI; until then it skips them without a
-word, so run `openhivemind doctor` — it reports whether the plugin is installed
-and whether its hooks have ever fired. Connect the laptop with the same `setup` command as above.
+clone for development. Codex runs the plugin's bundled hooks only after they
+are trusted, which is granted from the Codex TUI; until then it skips them
+without a word, so run `openhivemind doctor` — it reports whether the plugin is
+installed and whether its hooks have ever fired.
 
-`setup` accepts repeatable `--root <dir>` and `--exclude <dir>`; with no
-roots, every git checkout with an `origin` remote is captured. The token comes
-from the tokens page in the viewer, and is read from stdin when `--token` is
-omitted. Each finished turn spools locally and a detached `openhivemind sync`
-uploads it; `doctor` reports anything still pending.
+Each finished turn spools locally and a detached `openhivemind sync` uploads it;
+`doctor` reports anything still pending.
 
 ## Beam an existing session
 
@@ -74,7 +83,10 @@ or capture. Demo changes are in memory and disappear on reload. The regular
 
 Node 24.20.0 LTS and pnpm 11.25.0 are pinned. `pnpm install` provisions the
 workspace Node runtime even when your shell uses Node 26; `.nvmrc` and CI use
-that same version. Run `pnpm check`, `pnpm build`, and `pnpm test:pack`.
+that same version. This does not change the Node version used by standalone
+`npm` commands in the shell. Run `pnpm check`, `pnpm build`, and
+`pnpm test:pack`. To exercise the CLI directly from a clone, build and link the
+client package with `pnpm build:cli` and `pnpm --dir client add --global .`.
 
 For database tests, start `docker compose up -d postgres`, then run
 `pnpm test:integration`. The harness creates a uniquely named
