@@ -6,6 +6,7 @@ import { harness } from "../lib/harness";
 import { harnessProps } from "./harness-badge";
 import { cn } from "../lib/utils";
 import { Button } from "./ui/button";
+import { time } from "../lib/format";
 function CodeBlock({ children }: { children?: React.ReactNode }) {
   const code = isValidElement<{ className?: string; children?: unknown }>(children)
     ? children
@@ -32,12 +33,19 @@ function CodeBlock({ children }: { children?: React.ReactNode }) {
   );
 }
 const speaker = {
-  prompt: "You",
   reply: "Assistant",
   summary: "Compaction summary",
   tool_call: "Tool call",
 } as const;
-export function MessageView({ message, source }: { message: Message; source: string }) {
+export function MessageView({
+  message,
+  source,
+  promptAuthor = "You",
+}: {
+  message: Message;
+  source: string;
+  promptAuthor?: string;
+}) {
   const { Glyph } = harness(source);
   const isPrompt = message.kind === "prompt";
   return (
@@ -55,8 +63,11 @@ export function MessageView({ message, source }: { message: Message; source: str
     >
       <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
         <span className={cn("font-semibold", isPrompt ? "text-harness" : "text-foreground")}>
-          {speaker[message.kind]}
+          {isPrompt ? promptAuthor : speaker[message.kind as Exclude<Message["kind"], "prompt">]}
         </span>
+        <time dateTime={message.ts} title={time(message.ts)}>
+          {time(message.ts)}
+        </time>
         <a className="hover:text-foreground" href={"#message-" + message.seq}>
           #{message.seq}
         </a>

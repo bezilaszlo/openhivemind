@@ -133,12 +133,15 @@ Haiku runs with logging hooks in a scratch repo).
 
 Adapter: `Stop` (async) → `turn`; `SessionEnd` → `session-end` (spool only).
 Capture cursor: byte offset; partial trailing line left for the next read.
-The root session's title is derived from its first prompt: the first
-non-empty line, whitespace-collapsed and clamped to about 120 characters on a
-word boundary with an ellipsis, never the raw prompt — a long pasted brief
-does not become a multi-kilobyte title. An explicit `event.title` (used by
-subagents and future harnesses) gets the same clamp. Once set, a session's
-title never changes.
+Title precedence on every capture is a non-placeholder native title
+(`ai-title.aiTitle`), then a non-placeholder event title (including a subagent
+sidecar title), a non-placeholder stored title, the first real prompt, a
+placeholder native or stored title, and finally `Untitled session`. The first
+prompt is its first non-empty line, whitespace-collapsed and clamped to about
+120 characters on a word boundary with an ellipsis; every title source is
+scrubbed before that clamp. `Untitled`, `Untitled session` and `New chat` are
+placeholders. Claude can append its native title after the first upload, so a
+later capture replaces the prompt fallback through a metadata-only update.
 Subagent files are discovered from the transcript directory on each turn and
 on every drain re-capture, and carry their own cursors and spool state exactly
 like the root. Nesting is flattened on purpose: every child, at any depth, is
@@ -172,7 +175,7 @@ hook JSON schemas, and its `hooks/list` app-server route).
 | Compaction | Top-level `compacted` `{message, replacement_history, window_*}`, appended |
 | Subagents | Separate rollout files: `session_meta.id` = child thread, `session_meta.session_id` = parent, `thread_source` ∈ {subagent, guardian_review, …}, `agent_path` / `agent_nickname`. The child file **opens with the parent's history and the parent's `session_meta` copied in**, all below `subagent_history_start_ordinal`; only the first `session_meta` and records from that ordinal on belong to the child, and everything below it would otherwise be captured twice. A subagent receives its task as an encrypted `agent_message`, never as a prompt, so `agent_path` is its only title |
 | Append-only | Yes; `compacted` appends; resume reuses id and file (`SessionStart.source = resume`) |
-| Title | No field. The **first** user message is not the developer's: Codex opens every thread with `agents_md.instructions` and `environments.environment_context` blocks, and injects an `environment_context` refresh on later turns. `internal_chat_message_metadata_passthrough.content_item_kinds[i]` labels each content block; only `user.text` is typed by the developer. Injected blocks are dropped and the title is derived from the first `user.text` block the same way as the root session's title above: its first non-empty line, whitespace-collapsed and clamped to about 120 characters on a word boundary, never the raw block |
+| Title | The matching `session_index.jsonl` entry supplies `thread_name`; the read-only `state_5.sqlite` `threads` row falls back through `title`, `name`, then `first_user_message`. The index is refreshed on every drain, so its later native title replaces a fallback through a metadata-only update. The first user message is not necessarily the developer's: Codex opens every thread with `agents_md.instructions` and `environments.environment_context` blocks, and injects an `environment_context` refresh on later turns. `internal_chat_message_metadata_passthrough.content_item_kinds[i]` labels each content block; only `user.text` is typed by the developer. Injected blocks are dropped before first-prompt fallback. |
 | Hook stdin | Per the CLI's embedded schemas: every event carries `session_id, cwd, hook_event_name, transcript_path` (nullable). `Stop` adds `model, permission_mode, turn_id, stop_hook_active, last_assistant_message`; `SessionEnd` adds only `reason` (const `other`) and carries **no** `model`, `permission_mode` or `turn_id`. `transcript_path` is populated on 0.153.4 although the docs say otherwise; keep the filename fallback `rollout-*-<session_id>.jsonl` |
 | Hook events | `PreToolUse, PermissionRequest, PostToolUse, PreCompact, PostCompact, SessionStart, SessionEnd, UserPromptSubmit, Stop, SubagentStart, SubagentStop, Interrupt` |
 | Hook trust | Every hook — plugin-bundled, user or repo-local — is discovered as `untrusted` and is **skipped in silence** until it is trusted: nothing runs, nothing is logged, and `codex doctor` says nothing. Trust is `[hooks.state."<key>"] enabled = true, trusted_hash = "sha256:…"` in `config.toml`, keyed `<pluginId>:hooks/hooks.json:<event>:<group>:<index>` for plugin hooks and `<path>:<event>:<group>:<index>` otherwise; the TUI writes it. `codex exec` cannot grant it. The app-server route `hooks/list` reports every hook with its `trustStatus` and `currentHash`, which is the value to trust |
@@ -359,7 +362,9 @@ Every route documents request, response, defaults and hard caps.
   (a child at `spawn_depth` 2 or deeper) and `inherited` (a child with no
   `model_explicit`); cursor pagination; returns meta, counts, tokens,
   `childCount`, `lastPrompt`, `lastReply`, current summary and the agents
-  rollup. `agents` is null when the session spawned none, otherwise
+  rollup. Empty sessions are omitted, except a parent with messages in its
+  descendants remains visible. `agents` is null when the session spawned none,
+  otherwise
   `{count, maxDepth, models: [{model, count, inherited}], inputTokens,
   outputTokens}` over the session's children, computed in one grouped query for
   the whole page. Nesting is flattened by the harnesses: a child's
@@ -368,7 +373,14 @@ Every route documents request, response, defaults and hard caps.
   children that ran the session's model without asking for one, and the token
   figures cover the children only.
 - `GET /api/v1/sessions/{idOrPrefix}`: `from`, `to`, `around`+`context`,
-  `last`, `kind`, `maxChars`; prefix resolution scoped to the org, 404 / 409.
+  `last`, `kind`, `maxChars`; `last` returns chronological messages from the
+  newest window, and its cursor continues to older messages. The viewer can
+  also request the preceding window with `to=<first-seq-1>&last=N`. Prefix
+  resolution is scoped to the org, 404 / 409. `wholeMessages: true` makes
+  `maxChars` a soft window cap: the first message is returned whole even when
+  it exceeds the cap, and later messages stop before exceeding it, so a cursor
+  never skips a message tail. The default keeps bounded text truncation for
+  CLI callers.
 - `GET /api/v1/changes?since=<cursor>`: ingest-order change feed (receipt
   cursor, not message ts) for `tail`; replaces timestamp watermarks.
 - `GET /api/v1/usage`, `GET /api/v1/remotes`.

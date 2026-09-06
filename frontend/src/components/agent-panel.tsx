@@ -18,6 +18,8 @@ export function AgentPanel({ session, agents }: { session: Session; agents: Sess
           </dd>
           <dt className="text-muted">Started</dt>
           <dd className="mb-2 text-foreground">{time(session.started_at)}</dd>
+          <dt className="text-muted">Last received</dt>
+          <dd className="mb-2 text-foreground">{time(session.received_at)}</dd>
           <dt className="text-muted">Capture</dt>
           <dd className="text-foreground">
             {session.completed ? "Completed" : "Completion unknown"}

@@ -215,8 +215,10 @@ export const routes = {
       around: Type.Optional(Type.Integer({ minimum: 1 })),
       context: Type.Optional(Type.Integer({ minimum: 0, maximum: 100, default: 10 })),
       last: Type.Optional(Type.Integer({ minimum: 1, maximum: 500 })),
+      cursor: Type.Optional(string()),
       kind: Type.Optional(Kind),
       maxChars: Type.Optional(Type.Integer({ minimum: 1, maximum: 200000, default: 20000 })),
+      wholeMessages: Type.Optional(Type.Boolean()),
     }),
   ),
   search: route(

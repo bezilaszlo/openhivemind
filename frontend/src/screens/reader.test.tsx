@@ -16,6 +16,7 @@ const session = {
   models: ["claude-sonnet-4-6"],
   started_at: "2026-09-05T09:00:00Z",
   last_activity_at: "2026-09-05T10:00:00Z",
+  received_at: "2026-09-05T10:00:01Z",
   completed: true,
   parent_session_id: null,
   messageCount: 1,
@@ -24,6 +25,7 @@ const session = {
   summary: null,
 } as unknown as Session;
 beforeEach(() => {
+  vi.spyOn(window, "scrollTo").mockImplementation(() => undefined);
   mock.api.mockClear();
   mock.purge.mockClear();
   mock.api.mockImplementation((route: unknown) => {
@@ -62,4 +64,47 @@ it("names the session and purges its descendants only on confirmation", async ()
   expect(screen.getByText(/its descendants will be permanently deleted/)).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Delete session" }));
   await waitFor(() => expect(mock.purge).toHaveBeenCalledTimes(1));
+});
+it("opens an ordinary session at the latest chronological window", async () => {
+  renderScreen(() => <Reader id="s1" />);
+  await screen.findByText("Trace the retry path");
+  const request = mock.api.mock.calls.find(([route]) => route === routes.session);
+  expect(request?.[1]).toMatchObject({ query: { last: 100, wholeMessages: true } });
+});
+it("keeps compact session identity and mobile context access in the reader", async () => {
+  renderScreen(() => <Reader id="s1" />);
+  expect(await screen.findByLabelText("Session identity")).toBeTruthy();
+  expect(screen.getByRole("button", { name: /Context/ })).toBeTruthy();
+});
+it("groups adjacent tool calls in the read-only transcript", async () => {
+  mock.api.mockImplementation((route: unknown) => {
+    if (route === routes.org)
+      return Promise.resolve({ id: "o", name: "Team", userId: "me", role: "admin" });
+    if (route === routes.session)
+      return Promise.resolve({
+        session,
+        messages: [
+          {
+            seq: 1,
+            rev: 1,
+            kind: "tool_call",
+            tool_name: "Read",
+            text: "a.ts",
+            ts: session.started_at,
+          },
+          {
+            seq: 2,
+            rev: 1,
+            kind: "tool_call",
+            tool_name: "Read",
+            text: "b.ts",
+            ts: session.started_at,
+          },
+        ],
+        cursor: null,
+      });
+    return Promise.resolve({ items: [], cursor: null });
+  });
+  renderScreen(() => <Reader id="s1" />);
+  expect(await screen.findByText("2 tool calls")).toBeTruthy();
 });

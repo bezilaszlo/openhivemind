@@ -63,6 +63,23 @@ it("tints a prompt with its own harness and leaves replies neutral", () => {
   const reply = container.querySelector("article")!;
   expect(reply.className).not.toContain("bg-harness");
 });
+it("uses the session author for another person's prompt and shows its timestamp", () => {
+  render(
+    <MessageView
+      source="claude-code"
+      promptAuthor="Jamie Chen"
+      message={{
+        seq: 4,
+        rev: 1,
+        kind: "prompt",
+        text: "Please review this",
+        ts: "2026-09-05T10:00:00Z",
+      }}
+    />,
+  );
+  expect(screen.getByText("Jamie Chen")).toBeTruthy();
+  expect(screen.getByText(/Sep 5, 2026/).tagName).toBe("TIME");
+});
 it("labels a fenced code block with its language and offers a copy action", () => {
   render(
     <MessageView

@@ -63,6 +63,22 @@ function filters(context: Context, filter: Filter, values: unknown[]) {
   if (filter.inherited) clauses.push(child(" AND c.meta->>'model_explicit' IS NULL"));
   return clauses;
 }
+function hasContent() {
+  return `(
+    EXISTS (SELECT 1 FROM agent_message message WHERE message.session_id=s.id)
+    OR EXISTS (
+      WITH RECURSIVE descendants AS (
+        SELECT child.id FROM agent_session child
+        WHERE child.org_id=s.org_id AND child.parent_session_id=s.id
+        UNION ALL
+        SELECT child.id FROM agent_session child
+        JOIN descendants ON child.parent_session_id=descendants.id
+        WHERE child.org_id=s.org_id
+      )
+      SELECT 1 FROM descendants JOIN agent_message message ON message.session_id=descendants.id
+    )
+  )`;
+}
 /**
  * One grouped pass over the children of every session on the page: how many,
  * how deep, which models and whether each child inherited the session's model.
@@ -157,6 +173,8 @@ export async function sessionView(
 export async function sessions(pool: pg.Pool, context: Context, filter: Filter) {
   const values: unknown[] = [];
   const where = filters(context, filter, values);
+  // Metadata-only sessions are capture noise, except roots whose children contain a real chat.
+  where.push(hasContent());
   const after = decode(filter.cursor);
   if (after.length) {
     if (typeof after[0] !== "string" || typeof after[1] !== "string")
@@ -195,8 +213,10 @@ export async function sessionDetail(
     around?: number;
     context?: number;
     last?: number;
+    cursor?: string;
     kind?: string;
     maxChars?: number;
+    wholeMessages?: boolean;
   } = {},
 ) {
   const ids = await pool.query<{ id: string }>(
@@ -206,23 +226,40 @@ export async function sessionDetail(
   if (!ids.rows.length) throw new HttpError(404, "Session not found");
   if (ids.rows.length > 1) throw new HttpError(409, "Ambiguous session prefix");
   const id = ids.rows[0]!.id;
+  const decoded = decode(options.cursor);
+  const [candidate] = decoded;
+  if (
+    decoded.length &&
+    (decoded.length !== 1 ||
+      typeof candidate !== "number" ||
+      !Number.isSafeInteger(candidate) ||
+      candidate < 1)
+  )
+    throw new HttpError(400, "Invalid cursor");
+  const before = candidate as number | undefined;
   const from = options.around
     ? Math.max(1, options.around - (options.context ?? 10))
     : (options.from ?? 1);
   const to = options.around ? options.around + (options.context ?? 10) : (options.to ?? 2147483647);
+  const limit = Math.min(options.last ?? 500, 500);
   const rows = await pool.query<{ data: Message }>(
-    `SELECT data FROM agent_message WHERE session_id=$1 AND seq BETWEEN $2 AND $3 AND ($4::text IS NULL OR kind=$4) ORDER BY seq ${options.last ? "DESC" : "ASC"} LIMIT $5`,
-    [id, from, to, options.kind ?? null, Math.min(options.last ?? 500, 500)],
+    `SELECT data FROM agent_message WHERE session_id=$1 AND seq BETWEEN $2 AND $3 AND ($4::int IS NULL OR seq${options.last ? "<" : ">"}$4) AND ($5::text IS NULL OR kind=$5) ORDER BY seq ${options.last ? "DESC" : "ASC"} LIMIT $6`,
+    [id, from, to, before ?? null, options.kind ?? null, limit + 1],
   );
+  const selected = rows.rows.slice(0, limit);
   let remaining = options.maxChars ?? 20000;
   const messages: Message[] = [];
-  let more = false;
-  for (const { data } of rows.rows) {
+  let more = rows.rows.length > selected.length;
+  for (const { data } of selected) {
+    if (options.wholeMessages && messages.length && data.text.length > remaining) {
+      more = true;
+      break;
+    }
     if (remaining === 0) {
       more = true;
       break;
     }
-    const text = data.text.slice(0, remaining);
+    const text = options.wholeMessages ? data.text : data.text.slice(0, remaining);
     remaining -= text.length;
     messages.push({
       ...data,
@@ -234,7 +271,10 @@ export async function sessionDetail(
   return {
     session: await sessionView(pool, context, id),
     messages,
-    cursor: more || rows.rows.length === 500 ? cursor([messages.at(-1)?.seq ?? 0]) : null,
+    cursor:
+      more && messages.length
+        ? cursor([options.last ? messages[0]!.seq : messages.at(-1)!.seq])
+        : null,
   };
 }
 function compile(query: Query, values: unknown[]): string {
