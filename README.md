@@ -10,8 +10,8 @@ Shared, searchable history of coding-agent sessions for a team. Self-hosted.
 
 **Status: MVP implementation in progress.** The workspace, shared contracts,
 privacy/search/parser tests, authenticated data routes, local/OIDC integration
-and the interactive viewer are runnable. Claude Code capture runs end to end
-through the native plugin, the spool and the uploader; Codex CLI and opencode
+and the interactive viewer are runnable. Claude Code and Codex CLI capture run
+end to end through their native plugins, the spool and the uploader; opencode
 capture, the read commands and browser login are not implemented yet. Full
 release acceptance remains unfinished; this is not v1.
 
@@ -26,11 +26,31 @@ openhivemind setup https://hivemind.example.com --token <personal access token>
 openhivemind doctor
 ```
 
+## Capture a Codex CLI session
+
+`codex plugin marketplace add openhivemind/openhivemind` then
+`codex plugin add openhivemind@openhivemind`, or point the marketplace at a
+clone. Codex runs the plugin's bundled hooks only after they are
+trusted, which is granted from the Codex TUI; until then it skips them without a
+word, so run `openhivemind doctor` — it reports whether the plugin is installed
+and whether its hooks have ever fired. Connect the laptop with the same `setup` command as above.
+
 `setup` accepts repeatable `--root <dir>` and `--exclude <dir>`; with no
 roots, every git checkout with an `origin` remote is captured. The token comes
 from the tokens page in the viewer, and is read from stdin when `--token` is
 omitted. Each finished turn spools locally and a detached `openhivemind sync`
 uploads it; `doctor` reports anything still pending.
+
+## Beam an existing session
+
+`openhivemind beam <transcript.jsonl|session-id>` sends a Claude Code session
+that already exists on disk, not just the ones a live hook has seen. Given a
+bare session id, it is resolved against every project directory under
+`~/.claude/projects`; given a path, that transcript is used directly. It runs
+the same capture and upload path as the hook, so a beamed session keeps
+uploading normally from a later hook, includes the session's subagents, and
+re-running it on an already-beamed session sends nothing new. There is no bulk
+or historic-discovery mode yet (see ROADMAP.md); beam one session at a time.
 
 ## Frontend preview
 

@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, expect, it } from "vitest";
-import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { cp, mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { claudeCodeChildren, claudeCodeEvent } from "./claude-code";
+import { claudeCodeChildren, claudeCodeEvent, claudeCodeLocate } from "./claude-code";
 import type { Event } from "../capture";
 let folder: string, event: Event;
 const fixtures = new URL("../../../fixtures/claude-code/subagents/", import.meta.url);
@@ -66,4 +66,42 @@ it("defaults depth to one when the sidecar metadata is missing and never recurse
 it("returns nothing when the session has no subagents", async () => {
   await rm(join(folder, "session-1"), { recursive: true });
   expect(await claudeCodeChildren(event)).toEqual([]);
+});
+it("refuses an ambiguous session id present under more than one project", async () => {
+  vi.stubEnv("HOME", folder);
+  const first = join(folder, ".claude/projects/-one");
+  const second = join(folder, ".claude/projects/-two");
+  await mkdir(first, { recursive: true });
+  await mkdir(second, { recursive: true });
+  const id = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+  await writeFile(join(first, id + ".jsonl"), '{"cwd":"/tmp"}\n');
+  await writeFile(join(second, id + ".jsonl"), '{"cwd":"/tmp"}\n');
+  await expect(claudeCodeLocate(id)).rejects.toThrow(/more than one project/);
+  vi.unstubAllEnvs();
+});
+it("refuses to locate a subagent transcript directly as a root session", async () => {
+  await expect(
+    claudeCodeLocate(join(folder, "session-1/subagents/agent-a1b2c3d4e5f60718a.jsonl")),
+  ).rejects.toThrow(/subagent transcript/);
+});
+it("skips an unparseable line and still finds a cwd on a later one", async () => {
+  const path = join(folder, "skip-me.jsonl");
+  await writeFile(path, 'not json\n{"cwd":"/projects/example"}\n');
+  const found = await claudeCodeLocate(path);
+  expect(found?.cwd).toBe("/projects/example");
+});
+it("throws a clear error when no line carries a cwd", async () => {
+  const path = join(folder, "no-cwd.jsonl");
+  await writeFile(path, "not json\n".repeat(5));
+  await expect(claudeCodeLocate(path)).rejects.toThrow(/No cwd recorded/);
+});
+it("marks a stale transcript completed but leaves a fresh one alone", async () => {
+  const path = join(folder, "age.jsonl");
+  await writeFile(path, '{"cwd":"/projects/example"}\n');
+  const fresh = await claudeCodeLocate(path);
+  expect(fresh?.completed).toBeUndefined();
+  const old = new Date(Date.now() - 11 * 60 * 1000);
+  await utimes(path, old, old);
+  const stale = await claudeCodeLocate(path);
+  expect(stale?.completed).toBe(true);
 });

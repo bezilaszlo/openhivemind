@@ -31,6 +31,9 @@ in the viewer and via search within one turn of the hook firing.
 
 ## v1.x — more harnesses, better recall
 
+- Bulk historic load: discover and beam every prior session on a machine, not just
+  one at a time (`beam` today takes a single transcript or session id).
+
 - Additional harness parsers (Gemini CLI, Cursor, others by demand).
 - Windows support for the client.
 - Project-level visibility controls if teams ask for them.

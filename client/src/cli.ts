@@ -2,6 +2,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { createApi, routes } from "@openhivemind/shared";
+import { beam } from "./commands/beam";
 import { doctor } from "./commands/doctor";
 import { hook } from "./commands/hook";
 import { login } from "./commands/login";
@@ -39,7 +40,7 @@ async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === "--help" || command === "help") {
     console.log(
-      "Open Hivemind (development)\n\nCommands: setup <url> [--token <pat>] [--root <dir>] [--exclude <dir>] [--read-only],\n          login --server <url> --token <pat>, doctor, hook [--dry-run], sync,\n          config <server-url>, skills [name]\nRead commands are under implementation.\nExit codes: 0 success, 1 empty, 2 usage/request error.",
+      "Open Hivemind (development)\n\nCommands: setup <url> [--token <pat>] [--root <dir>] [--exclude <dir>] [--read-only],\n          login --server <url> --token <pat>, doctor, hook [--dry-run], sync,\n          beam <transcript.jsonl|session-id>, config <server-url>, skills [name]\nRead commands are under implementation.\nExit codes: 0 success, 1 empty, 2 usage/request error.",
     );
     return;
   }
@@ -97,6 +98,20 @@ async function main() {
     );
     for (const error of new Set(result.errors)) console.error(error);
     if (result.errors.length) process.exitCode = 2;
+    return;
+  }
+  if (command === "beam") {
+    if (args.length !== 1)
+      throw new Error("Usage: openhivemind beam <transcript.jsonl|session-id>");
+    const result = await beam(args[0]!, await loadConfig());
+    console.log(
+      `${result.sessionId}: ${result.status}, ${result.chunks} chunk(s), ${result.children} subagent(s) captured; ` +
+        (result.uploaded.skipped
+          ? "another uploader is running; nothing sent from beam."
+          : `uploaded ${result.uploaded.sent}, ${result.uploaded.pending} pending.`),
+    );
+    for (const error of new Set(result.uploaded.errors)) console.error(error);
+    if (result.uploaded.errors.length) process.exitCode = 2;
     return;
   }
   if (command === "config" && args.length === 1) {
