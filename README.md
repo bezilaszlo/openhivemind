@@ -149,7 +149,11 @@ tool calls to the team's server. Tool results and thinking are never sent.
 
 A CLI and agent skills search that history back from inside a session, and
 let a session hand itself to a fresh chat with a short brief instead of
-compacting. A web viewer renders it all as readable chat for humans.
+compacting. A web viewer renders it all as readable chat for humans. It opens
+at the newest messages and loads older history above them. Empty captures stay
+out of the session list, while a parent with captured subagents remains visible.
+Harness-native titles replace a first-prompt fallback on a later sync; the
+viewer is read-only and does not rename sessions.
 
 Harness targets: Claude Code, Codex CLI, opencode. Others can follow; each one
 is a parser behind the same hook contract.

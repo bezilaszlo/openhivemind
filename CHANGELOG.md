@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+Session capture now waits for meaningful content instead of publishing empty
+threads, and the viewer omits legacy empty sessions unless they parent a
+captured conversation. Claude Code's `ai-title` and Codex's native thread name
+now replace a first-prompt fallback on a later sync; title-only updates notify
+readers. The session reader opens at the newest messages and pages older
+history above them with an accurate continuation cursor. A compact session
+header stays pinned while you scroll, the desktop context panel is sticky
+alongside it, and long messages are no longer cut off at a page boundary.
+
 Kept editing test files, `drizzle.config.ts`, `tsup.config.ts`, fixtures or
 docs from restarting or resyncing the dev-stack `backend` container: `tsx
 watch` now gets explicit `--exclude` globs for test files as a documented
