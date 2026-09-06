@@ -8,6 +8,7 @@ import { ErrorState } from "../components/states";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { PasswordInput } from "../components/ui/password-input";
 export function Login() {
   const [register, setRegister] = useState(false);
   const [email, setEmail] = useState("");
@@ -78,10 +79,11 @@ export function Login() {
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="login-password">Password</Label>
-          <Input
+          <Label htmlFor="login-password">
+            Password{register && <span className="font-normal"> (at least 12 characters)</span>}
+          </Label>
+          <PasswordInput
             id="login-password"
-            type="password"
             required
             minLength={register ? 12 : 1}
             value={password}
