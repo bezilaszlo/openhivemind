@@ -124,3 +124,17 @@ it("serializes concurrent first registrations", async () => {
   expect((await pool.query("SELECT id FROM auth.organization")).rowCount).toBe(1);
   expect((await pool.query("SELECT id FROM auth.member")).rowCount).toBe(1);
 });
+it("relays Better Auth rejections as problem+json so the viewer can show the reason", async () => {
+  const response = await app.inject({
+    method: "POST",
+    url: "/api/auth/sign-up/email",
+    headers: { origin: url },
+    payload: { name: "Short", email: "short@example.test", password: "short" },
+  });
+  expect(response.statusCode).toBe(400);
+  expect(response.headers["content-type"]).toContain("application/problem+json");
+  expect(response.json()).toMatchObject({
+    status: 400,
+    detail: expect.stringMatching(/too short/i),
+  });
+});

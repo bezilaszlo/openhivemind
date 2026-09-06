@@ -151,7 +151,19 @@ export async function mountAuth(app: FastifyInstance, pool: pg.Pool, auth: Auth,
         });
         const cookies = response.headers.getSetCookie();
         if (cookies.length) reply.header("set-cookie", cookies);
-        return reply.send(await response.text());
+        const text = await response.text();
+        // Better Auth answers errors as {message, code}; the client reads problem+json {detail}.
+        if (!response.ok && response.headers.get("content-type")?.includes("application/json")) {
+          const message = (JSON.parse(text) as { message?: unknown }).message;
+          if (typeof message === "string")
+            return reply.type("application/problem+json").send({
+              type: "about:blank",
+              title: "Request rejected",
+              status: response.status,
+              detail: message,
+            });
+        }
+        return reply.send(text);
       } finally {
         if (gate) {
           await gate.query("SELECT pg_advisory_unlock(726142)");
