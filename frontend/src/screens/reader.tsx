@@ -31,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "../components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "../components/ui/sheet";
 
 type Window = { around?: number; kind?: "prompt" | "tool_call"; from?: number; to?: number };
 type PageParam = {
@@ -112,6 +112,8 @@ export function Reader({ id }: { id: string }) {
   const org = useOrg();
   const client = useQueryClient();
   const [panel, setPanel] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const sentinel = useRef<HTMLDivElement | null>(null);
   const [reload, setReload] = useState(0);
   const restoreScroll = useRef<{ height: number; top: number } | null>(null);
   const didInitialScroll = useRef(false);
@@ -153,6 +155,17 @@ export function Reader({ id }: { id: string }) {
   const messages = query.data?.pages.flatMap((item) => item.messages) ?? [];
   const session = query.data?.pages[0]?.session;
 
+  // The pinned bar repeats the page header's identity, so it only earns its space
+  // once that header has scrolled away.
+  useEffect(() => {
+    const node = sentinel.current;
+    if (!node) return;
+    // Without an observer the safe default is the always-visible bar.
+    if (typeof IntersectionObserver !== "function") return setPinned(true);
+    const observer = new IntersectionObserver(([entry]) => setPinned(!entry?.isIntersecting));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [session]);
   useEffect(() => {
     didInitialScroll.current = false;
   }, [id, reload, state.around, state.from, state.kind, state.to]);
@@ -245,6 +258,11 @@ export function Reader({ id }: { id: string }) {
           >
             <Copy /> Copy link
           </Button>
+          {!pinned && (
+            <Button size="sm" variant="ghost" className="lg:hidden" onClick={() => setPanel(true)}>
+              <PanelRight /> Context
+            </Button>
+          )}
           {session.owner_user_id === org.data?.userId && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -276,38 +294,39 @@ export function Reader({ id }: { id: string }) {
           )}
         </div>
       </PageHeader>
-      <section
-        aria-label="Session identity"
-        className="sticky top-0 z-20 -mx-5 mb-6 flex min-h-11 items-center gap-3 border-y border-border bg-background/95 px-5 py-2 shadow-sm backdrop-blur-sm md:-mx-12 md:px-12"
-      >
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold text-foreground">{session.title}</h2>
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <HarnessBadge source={session.source} />
-            <span className="truncate font-mono">{session.branch || "No branch"}</span>
-            <span className="hidden sm:inline">
-              <SessionActivity session={session} />
-            </span>
+      <div ref={sentinel} aria-hidden="true" />
+      {pinned && (
+        <section
+          aria-label="Session identity"
+          className="sticky top-0 z-20 -mx-5 mb-6 flex min-h-11 items-center gap-3 border-y border-border bg-background/95 px-5 py-2 shadow-sm backdrop-blur-sm md:-mx-12 md:px-12"
+        >
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-sm font-semibold text-foreground">{session.title}</h2>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <HarnessBadge source={session.source} />
+              <span className="truncate font-mono">{session.branch || "No branch"}</span>
+              <span className="hidden sm:inline">
+                <SessionActivity session={session} />
+              </span>
+            </div>
           </div>
-        </div>
-        {(changes.changed || state.around || state.from || state.to) && (
-          <Button size="sm" onClick={jumpLatest}>
-            <ArrowDown aria-hidden="true" className="size-3.5" />
-            Jump to latest
-          </Button>
-        )}
-        <Sheet open={panel} onOpenChange={setPanel}>
-          <SheetTrigger asChild>
-            <Button size="sm" variant="ghost" className="lg:hidden">
-              <PanelRight /> Context
+          {(changes.changed || state.around || state.from || state.to) && (
+            <Button size="sm" onClick={jumpLatest}>
+              <ArrowDown aria-hidden="true" className="size-3.5" />
+              Jump to latest
             </Button>
-          </SheetTrigger>
-          <SheetContent side="right" aria-describedby={undefined}>
-            <SheetTitle className="sr-only">Session context and agents</SheetTitle>
-            {panelContent}
-          </SheetContent>
-        </Sheet>
-      </section>
+          )}
+          <Button size="sm" variant="ghost" className="lg:hidden" onClick={() => setPanel(true)}>
+            <PanelRight /> Context
+          </Button>
+        </section>
+      )}
+      <Sheet open={panel} onOpenChange={setPanel}>
+        <SheetContent side="right" aria-describedby={undefined}>
+          <SheetTitle className="sr-only">Session context and agents</SheetTitle>
+          {panelContent}
+        </SheetContent>
+      </Sheet>
       <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_14rem]">
         <section className="min-w-0">
           {session.summary && (
