@@ -10,14 +10,19 @@ const str = (value: unknown, fallback = ""): string =>
 const num = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-// Claude Code stamps a whole user record `isMeta: true` for a `/command` echo or a
-// local-command caveat; those records are dropped entirely below, never emitted. A
-// `system-reminder` block is different: the harness staples it onto a record that still
-// carries the developer's own typed text (memory recalls, hook output), so it is stripped
-// wherever it occurs in the block rather than the record being dropped.
-const SYSTEM_REMINDER = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
+// Claude Code stamps a whole user record `isMeta: true` for a local-command caveat, and
+// that record is dropped entirely below (see the isMeta check), never reaching here. A
+// `/command` echo is not flagged isMeta (measured across real transcripts: the caveat is
+// isMeta 47/47, the echo 1/51) and its three tags appear in either order with
+// `command-args` sometimes absent, so each tag is matched independently rather than as one
+// fixed sequence. A `system-reminder` is different again: it is stapled onto a record that
+// still carries the developer's own typed text (memory recalls, hook output), so every
+// wrapper form here is stripped wherever it occurs in the block, not just at a leading
+// position, and the record is dropped only if nothing real remains after trimming.
+const INJECTED_WRAPPER =
+  /<system-reminder>[\s\S]*?<\/system-reminder>|<command-name>[\s\S]*?<\/command-name>|<command-message>[\s\S]*?<\/command-message>|<command-args>[\s\S]*?<\/command-args>/g;
 function stripInjectedPrompt(text: string): string {
-  return text.replace(SYSTEM_REMINDER, "").trim();
+  return text.replace(INJECTED_WRAPPER, "").trim();
 }
 export type ParsedMessage = Omit<Message, "seq" | "rev"> & { source_event_id: string };
 export interface Parsed {

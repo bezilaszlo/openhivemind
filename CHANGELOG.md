@@ -16,11 +16,13 @@ injected wrapper text (the `local-command-caveat` and `/command` echo ahead of
 a `/clear`, or a `system-reminder` block the harness staples onto a memory
 recall or hook output) instead of only what the developer actually typed. The
 Claude Code parser branch in `shared/src/parsers/index.ts` now drops a whole
-user record when the harness flags it `isMeta: true` (the caveat and the
-command echo), and strips a `system-reminder` wherever it occurs in a
-record's block — leading, mid-block, or trailing, not just a bare prefix —
-dropping the record if nothing real is left, mirroring how the Codex branch
-already drops its injected `AGENTS.md`/environment blocks. `fixtures/claude-code/session.json`
+user record when the harness flags it `isMeta: true` (the caveat only —
+measured against real transcripts, the `/command` echo itself is not
+isMeta-flagged), and strips the `system-reminder` and `command-name`/
+`command-message`/`command-args` tags independently, wherever and in
+whatever order they occur in a record's block, dropping the record if
+nothing real is left, mirroring how the Codex branch already drops its
+injected `AGENTS.md`/environment blocks. `fixtures/claude-code/session.json`
 now opens with a synthetic `/clear` and a trailing reminder so the golden
 locks this in.
 

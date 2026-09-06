@@ -37,7 +37,6 @@ it("drops a /clear caveat and command echo, and titles from the first real promp
     },
     {
       type: "user",
-      isMeta: true,
       uuid: "b",
       message: {
         role: "user",
@@ -59,17 +58,30 @@ it("drops a /clear caveat and command echo, and titles from the first real promp
   expect(result.messages).toHaveLength(1);
   expect(result.messages[0]).toMatchObject({ kind: "prompt", text: "Fix the flaky widget test" });
 });
-it("keeps a lone command-name echo with no message/args verbatim when not flagged isMeta", () => {
-  const result = parseRecords("claude-code", [
+it("drops a command echo regardless of tag order or a missing command-args tag", () => {
+  const messageBeforeName = parseRecords("claude-code", [
     {
       type: "user",
       uuid: "a",
-      message: { role: "user", content: "<command-name>/foo</command-name>" },
+      message: {
+        role: "user",
+        content: "<command-message>voice</command-message> <command-name>/voice</command-name>",
+      },
     },
   ]);
-  expect(result.messages).toEqual([
-    expect.objectContaining({ kind: "prompt", text: "<command-name>/foo</command-name>" }),
+  expect(messageBeforeName.messages).toEqual([]);
+  const withArgsReordered = parseRecords("claude-code", [
+    {
+      type: "user",
+      uuid: "b",
+      message: {
+        role: "user",
+        content:
+          "<command-message>hive-mind:setup</command-message> <command-name>/hive-mind:setup</command-name> <command-args>https://example.test</command-args>",
+      },
+    },
   ]);
+  expect(withArgsReordered.messages).toEqual([]);
 });
 it("strips a system-reminder wherever it occurs in the block: leading, mid-block, trailing", () => {
   const leadingWithWhitespace = parseRecords("claude-code", [

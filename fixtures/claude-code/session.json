@@ -31,7 +31,6 @@
   {
     "parentUuid": "fixture-id-clear-caveat",
     "isSidechain": false,
-    "isMeta": true,
     "type": "user",
     "message": {
       "role": "user",
