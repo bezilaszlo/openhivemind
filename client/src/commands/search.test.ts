@@ -131,3 +131,16 @@ it("says the cap is reached, not to increase --limit, when --limit is already 10
   const result = await search(config, options(["widget", "--limit", "100"]));
   expect(result.lines.join("\n")).toContain("truncated at the maximum limit");
 });
+it("tells an unreachable hive apart from a rejected request", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => {
+      throw new TypeError("fetch failed");
+    }),
+  );
+  const result = await search(config, options(["widget"]));
+  expect(result.exitCode).toBe(2);
+  expect(result.lines[0]).toBe(
+    "Hive http://server.test unreachable (fetch failed); run openhivemind doctor",
+  );
+});

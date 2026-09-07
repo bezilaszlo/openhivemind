@@ -91,8 +91,8 @@ export async function doctor(): Promise<{ lines: string[]; ok: boolean }> {
     const mode = ((await stat(configPath())).mode & 0o777).toString(8);
     lines.push(`Configuration: ${configPath()} (mode ${mode})`);
     if (mode !== "600") fail("  the configuration file should be mode 600");
-  } catch {
-    fail(`Configuration: missing or invalid at ${configPath()}; run openhivemind setup <url>`);
+  } catch (error) {
+    fail(`Configuration: ${error instanceof Error ? error.message : `invalid at ${configPath()}`}`);
     return { lines, ok };
   }
   try {

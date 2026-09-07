@@ -11,6 +11,13 @@ history above them with an accurate continuation cursor. A compact session
 header stays pinned while you scroll, the desktop context panel is sticky
 alongside it, and long messages are no longer cut off at a page boundary.
 
+On a machine without a configuration the CLI and `doctor` now say no hive is
+configured and how to run setup with a piped token, instead of "invalid configuration", and the
+`search`, `sessions` and `show` commands report an unreachable server as
+such rather than as a failed request. `setup` and `login` read the token from
+a pipe by default and refuse to wait at an open terminal with nothing piped;
+the README shows the piped form first.
+
 Kept editing test files, `drizzle.config.ts`, `tsup.config.ts`, fixtures or
 docs from restarting or resyncing the dev-stack `backend` container: `tsx
 watch` now gets explicit `--exclude` globs for test files as a documented

@@ -48,8 +48,15 @@ async function main() {
         "Usage: openhivemind setup <url> [--token <pat>] [--root <dir>] [--exclude <dir>] [--read-only]",
       );
     const given = flags.get("token");
+    // A hidden prompt swallows the paste in some terminals and --token lands in shell history, so
+    // the token is piped; an open terminal with nothing piped would otherwise wait in silence.
+    if (!given && process.stdin.isTTY)
+      throw new Error(
+        `Pipe the token in: wl-paste | openhivemind ${command} ${command === "setup" ? "<url>" : "--server <url>"} (pbpaste on macOS), or pass --token <pat>`,
+      );
     const token = given && given !== "-" ? given : (await readStdin()).trim();
-    if (!token) throw new Error("A personal access token is required: --token <pat> or on stdin");
+    if (!token)
+      throw new Error("A personal access token is required on stdin or via --token <pat>");
     const config = await login({
       server,
       token,

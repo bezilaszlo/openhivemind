@@ -58,5 +58,9 @@ in the viewer and via search within one turn of the hook firing.
 - Public hosted instance for open-source projects: trust in a shared database
   for transcripts is unlikely regardless of guardrails.
 - Per-person analytics of any kind.
+- A server-less local mode that searches this machine's transcripts. It only
+  helps a single developer, who already has the harness's own history; the
+  case that motivated it, an old session nobody beamed, is answered by bulk
+  historic load above. Read commands need a configured hive and say so.
 - Additional infrastructure beyond one relational database, unless real load
   proves the need.

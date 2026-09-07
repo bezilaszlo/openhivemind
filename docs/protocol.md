@@ -243,8 +243,9 @@ system owns install, update, disable and uninstall.
 opencode entry above. Nothing else. Flags: `--read-only` (no capture),
 `--harness <name>`.
 
-Implemented today: `setup <url> --token <pat>` and `login --server <url>
---token <pat>` (the token is read from stdin when the flag is absent or `-`),
+Implemented today: `setup <url>` and `login --server <url>` with the token
+piped on stdin (`--token <pat>` or `-` also accepted; an interactive terminal
+with nothing piped is an error, never a silent wait),
 both taking repeatable `--root` / `--exclude` and `--read-only`, and storing
 the resolved real paths in a mode-600 config. Browser login and the opencode
 entry are not implemented yet. `doctor` reports the config file and its mode,

@@ -1,7 +1,7 @@
 import { createApi, routes } from "@openhivemind/shared";
 import type { Config } from "../config";
 import { filters, type Options } from "../args";
-import { readFormat, table, truncate } from "./format";
+import { readFormat, table, truncate, describeRequestError } from "./format";
 interface Result {
   lines: string[];
   exitCode: number;
@@ -29,7 +29,7 @@ export async function sessions(config: Config, flags: Options): Promise<Result> 
     response = await createApi(config.server, config.token)(routes.sessions, { query });
   } catch (error) {
     return {
-      lines: [error instanceof Error ? error.message : "Sessions request failed"],
+      lines: [describeRequestError(config.server, error, "Sessions request failed")],
       exitCode: 2,
     };
   }

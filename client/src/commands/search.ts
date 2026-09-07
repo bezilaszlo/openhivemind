@@ -1,7 +1,7 @@
 import { createApi, routes, type Session, type Message } from "@openhivemind/shared";
 import type { Config } from "../config";
 import { filters, intFlag, type Options } from "../args";
-import { readFormat, heading, bullet, truncate } from "./format";
+import { readFormat, heading, bullet, truncate, describeRequestError } from "./format";
 interface Result {
   lines: string[];
   exitCode: number;
@@ -37,7 +37,7 @@ export async function search(config: Config, flags: Options): Promise<Result> {
     });
   } catch (error) {
     return {
-      lines: [error instanceof Error ? error.message : "Search request failed"],
+      lines: [describeRequestError(config.server, error, "Search request failed")],
       exitCode: 2,
     };
   }

@@ -22,12 +22,14 @@ Requires Node.js 24. Install the published CLI before adding an agent plugin:
 
 ```
 npm install --global openhivemind
-openhivemind setup https://hivemind.example.com --token <personal access token>
+wl-paste | openhivemind setup https://hivemind.example.com
 openhivemind doctor
 ```
 
-The token comes from the tokens page in the viewer and is read from stdin when
-`--token` is omitted. `setup` accepts repeatable `--root <dir>` and
+Copy a personal access token from the tokens page in the viewer and pipe it in
+(`pbpaste` on macOS, `xclip -o` on X11). `--token <pat>` works too but leaves
+the token in your shell history, and `setup` refuses to wait at an open
+terminal with nothing piped. `setup` accepts repeatable `--root <dir>` and
 `--exclude <dir>`; with no roots, every git checkout with an `origin` remote is
 captured.
 

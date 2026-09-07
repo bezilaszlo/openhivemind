@@ -1,7 +1,7 @@
 import { createApi, routes, type Message } from "@openhivemind/shared";
 import type { Config } from "../config";
 import { intFlag, type Options } from "../args";
-import { readFormat, heading, bullet, truncate } from "./format";
+import { readFormat, heading, bullet, truncate, describeRequestError } from "./format";
 interface Result {
   lines: string[];
   exitCode: number;
@@ -62,7 +62,10 @@ export async function show(config: Config, flags: Options): Promise<Result> {
       query: matcher ? { last: MATCH_SCAN_WINDOW, maxChars: MATCH_SCAN_MAX_CHARS } : { last },
     });
   } catch (error) {
-    return { lines: [error instanceof Error ? error.message : "Show request failed"], exitCode: 2 };
+    return {
+      lines: [describeRequestError(config.server, error, "Show request failed")],
+      exitCode: 2,
+    };
   }
   let messages = response.messages;
   if (matcher) {

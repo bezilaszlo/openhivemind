@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { doctor } from "./doctor";
 import { login } from "./login";
-import { loadConfig, configPath } from "../config";
+import { NOT_CONFIGURED, loadConfig, configPath } from "../config";
 import { atomic, upgradePath } from "../state";
 import { sessionFolder } from "../capture";
 const server = "http://server.test";
@@ -52,7 +52,7 @@ it("stores a private config with resolved folder controls and reports it healthy
 it("reports a missing configuration and a rejected token", async () => {
   const missing = await doctor();
   expect(missing.ok).toBe(false);
-  expect(missing.lines[0]).toContain("run openhivemind setup");
+  expect(missing.lines[0]).toBe(`Configuration: ${NOT_CONFIGURED}`);
   await signIn();
   authorized = false;
   const rejected = await doctor();
