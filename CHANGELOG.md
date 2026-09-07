@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.0 — 2026-09-07
+
 opencode sessions are captured. A small auto-discovered opencode plugin runs
 `openhivemind hook` on every `session.idle`, and the client reads that
 session's messages straight out of opencode's SQLite database. Because opencode

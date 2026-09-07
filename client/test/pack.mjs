@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import assert from "node:assert/strict";
+const { version } = JSON.parse(await readFile("client/package.json", "utf8"));
 const folder = await mkdtemp(join(tmpdir(), "openhivemind-pack-"));
 try {
   execFileSync("pnpm", ["--dir", "client", "pack", "--pack-destination", folder], {
@@ -26,7 +27,7 @@ try {
   const binary = resolve(folder, "node_modules/openhivemind/dist/cli.js");
   assert.equal(
     execFileSync(process.execPath, [binary, "--version"], { encoding: "utf8" }).trim(),
-    "0.1.0",
+    version,
   );
   assert.deepEqual(
     execFileSync(process.execPath, [binary, "skills"], { encoding: "utf8" }).trim().split("\n"),
@@ -60,7 +61,7 @@ try {
       encoding: "utf8",
       cwd: folder,
     }).trim(),
-    "0.1.0",
+    version,
   );
   console.log(
     "Clean tarball install, executable, bundled skills, plugin manifest and usage exit code passed.",

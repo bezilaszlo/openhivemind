@@ -13,6 +13,8 @@ import { options } from "./args";
 import { search } from "./commands/search";
 import { sessions } from "./commands/sessions";
 import { show } from "./commands/show";
+// Injected by tsup from package.json, so the version lives in one place.
+declare const __OHM_VERSION__: string;
 function emit(result: { lines: string[]; exitCode: number }) {
   const text = result.lines.join("\n");
   if (result.exitCode === 2) console.error(text);
@@ -28,7 +30,7 @@ async function main() {
     return;
   }
   if (command === "--version") {
-    console.log("0.1.0");
+    console.log(__OHM_VERSION__);
     return;
   }
   if (command === "skills") {
