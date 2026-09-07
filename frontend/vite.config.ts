@@ -5,6 +5,8 @@ export default defineConfig({
   plugins: [react(), tailwind()],
   server: {
     host: process.env.VITE_HOST ?? "127.0.0.1",
+    port: 4483,
+    strictPort: true,
     proxy: { "/api": process.env.VITE_API_PROXY ?? "http://localhost:3000" },
   },
 });

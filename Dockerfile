@@ -19,7 +19,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 FROM deps AS dev
 COPY . .
 ENV VITE_HOST=0.0.0.0
-EXPOSE 3000 5173
+EXPOSE 3000 4483
 CMD ["pnpm", "dev"]
 
 FROM deps AS build

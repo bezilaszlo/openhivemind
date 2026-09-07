@@ -76,7 +76,7 @@ see `openhivemind skills search` for the recommended recipe.
 ## Frontend preview
 
 Run `pnpm --filter @openhivemind/frontend dev:demo` and open
-http://localhost:5173. The labelled demo provides illustrative sessions for
+http://localhost:4483. The labelled demo provides illustrative sessions for
 browsing the reader, search, usage, tokens and organisation screens without login
 or capture. Demo changes are in memory and disappear on reload. The regular
 `dev` command connects to the real backend through the Vite proxy.
@@ -109,7 +109,7 @@ pnpm dev
 ```
 
 `pnpm dev` serves the backend on http://localhost:3000 and Vite on
-http://localhost:5173, which proxies `/api` to it. Nothing in the repo reads a
+http://localhost:4483, which proxies `/api` to it. Nothing in the repo reads a
 `.env` file, so `DATABASE_URL` has to be exported or set per command; Postgres is
 published on 55432 to stay clear of a local server on 5432, and
 `POSTGRES_PASSWORD` overrides the development default on both sides. Rerun the
@@ -120,7 +120,7 @@ migrate command whenever migrations change.
 `viewer` service running Vite from one `openhivemind-dev` image, each with its
 own logs and restarting only on its own sources. That backend migrates before
 starting its watch, so a fresh Postgres volume needs no manual step. Vite
-hot-reloads on http://localhost:5173 and reaches the backend by service name
+hot-reloads on http://localhost:4483 and reaches the backend by service name
 through `VITE_API_PROXY`, which also overrides the target for host-side Vite.
 Only Vite and Postgres are published, and changing a manifest or the lockfile
 rebuilds the dev image. Compose Watch syncs each service's actual runtime

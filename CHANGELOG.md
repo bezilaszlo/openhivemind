@@ -18,6 +18,9 @@ such rather than as a failed request. `setup` and `login` read the token from
 a pipe by default and refuse to wait at an open terminal with nothing piped;
 the README shows the piped form first.
 
+The Vite viewer now serves on 4483 instead of 5173, which other local projects
+use; the app stays on 3000 and compose Postgres on 55432.
+
 Kept editing test files, `drizzle.config.ts`, `tsup.config.ts`, fixtures or
 docs from restarting or resyncing the dev-stack `backend` container: `tsx
 watch` now gets explicit `--exclude` globs for test files as a documented
