@@ -1,7 +1,7 @@
 import { cp, rm } from "node:fs/promises";
 import { defineConfig } from "tsup";
 // The native plugins have to run without node_modules, so each carries its own copy of the bundle.
-const plugins = ["plugins/claude-code", "plugins/codex"];
+const plugins = ["plugins/claude-code", "plugins/codex", "plugins/opencode"];
 export default defineConfig({
   entry: ["src/cli.ts"],
   format: ["esm"],

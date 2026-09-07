@@ -73,6 +73,23 @@ it("names an invalid ignore line and a recorded upgrade requirement", async () =
   expect(report.lines.join("\n")).toContain("line 2");
   expect(report.lines.join("\n")).toContain("upgrade client");
 });
+it("reports the opencode plugin and whether it has captured a session", async () => {
+  const config = await signIn();
+  vi.stubEnv("XDG_CONFIG_HOME", join(home, ".config"));
+  const plugin = join(home, ".config/opencode/plugin");
+  expect((await doctor()).lines.join("\n")).toContain("opencode plugin: not installed");
+  await mkdir(plugin, { recursive: true });
+  await writeFile(join(plugin, "openhivemind.js"), "export default async () => ({});\n");
+  expect((await doctor()).lines.join("\n")).toContain(
+    "opencode plugin: installed, but no session has been captured yet",
+  );
+  await atomic(join(sessionFolder(config, "opencode", "ses_1"), "state.json"), {
+    event: { sessionId: "ses_1", source: "opencode" },
+  });
+  expect((await doctor()).lines.join("\n")).toContain(
+    "opencode plugin: installed, session.idle fires",
+  );
+});
 it("reports the Codex plugin and whether its bundled hooks have fired", async () => {
   const config = await signIn();
   const codexHome = join(home, "codex");
