@@ -6,7 +6,7 @@ import { DatabaseSync } from "node:sqlite";
 import { execFileSync } from "node:child_process";
 import { parseRecords } from "@openhivemind/shared";
 import { capture, type Event } from "../capture";
-import { opencodeChildren, opencodeEvent, opencodeRecords } from "./opencode";
+import { opencodeChildren, opencodeEvent, opencodeRecords, opencodeTitle } from "./opencode";
 import type { Config } from "../config";
 const SCHEMA = `
 CREATE TABLE session (id TEXT PRIMARY KEY, parent_id TEXT, directory TEXT NOT NULL,
@@ -176,6 +176,37 @@ it("takes cwd and a non-placeholder title from the session row", () => {
   expect(opencodeEvent({ source: "opencode", sessionId: "ses_1", dbPath: database })).toMatchObject(
     { title: "Wire up capture" },
   );
+});
+it("names the same root and depth whether a grandchild is captured by itself or as a child", () => {
+  write(database, []);
+  const db = new DatabaseSync(database);
+  for (const [id, parent] of [
+    ["ses_child", "ses_1"],
+    ["ses_grandchild", "ses_child"],
+  ] as const)
+    db.prepare("INSERT INTO session VALUES (?, ?, ?, 'Nested', '1.18.29')").run(id, parent, repo);
+  db.close();
+  const own = opencodeEvent({ source: "opencode", sessionId: "ses_grandchild", dbPath: database });
+  const asChild = opencodeChildren({
+    sessionId: "ses_1",
+    source: "opencode",
+    cwd: repo,
+    transcriptPath: database,
+  }).find((child) => child.sessionId === "ses_grandchild");
+  expect([own.parentId, own.spawnDepth]).toEqual(["ses_1", 2]);
+  expect([asChild?.parentId, asChild?.spawnDepth]).toEqual([own.parentId, own.spawnDepth]);
+});
+it("keeps a drain alive when the database is gone", () => {
+  const missing = join(folder, "vanished.db");
+  expect(opencodeTitle(missing, "ses_1")).toBeUndefined();
+  expect(
+    opencodeChildren({
+      sessionId: "ses_1",
+      source: "opencode",
+      cwd: repo,
+      transcriptPath: missing,
+    }),
+  ).toEqual([]);
 });
 it("flattens nested child sessions onto the root with their depth", () => {
   write(database, []);

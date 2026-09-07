@@ -90,7 +90,7 @@ async function opencodePluginInstalled(): Promise<boolean> {
       return true;
   for (const name of ["opencode.json", "opencode.jsonc", "config.json"]) {
     const config = await readFile(join(home, name), "utf8").catch(() => "");
-    if (/"plugin"\s*:[^\]]*openhivemind/.test(config)) return true;
+    if (/"plugin"\s*:\s*\[[^\]]*openhivemind/.test(config)) return true;
   }
   return false;
 }

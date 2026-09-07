@@ -16,7 +16,8 @@ interface SessionRow {
 // banner supplies this Node-native require and preserves the protocol-prefixed name.
 function open(path: string) {
   const { DatabaseSync } = require(["node", "sqlite"].join(":")) as typeof import("node:sqlite");
-  return new DatabaseSync(path, { readOnly: true });
+  // A concurrent opencode write holds the database briefly; wait for it rather than failing.
+  return new DatabaseSync(path, { readOnly: true, timeout: 2000 });
 }
 function query<T>(path: string, run: (database: ReturnType<typeof open>) => T): T {
   const database = open(path);
@@ -24,6 +25,16 @@ function query<T>(path: string, run: (database: ReturnType<typeof open>) => T): 
     return run(database);
   } finally {
     database.close();
+  }
+}
+// The drain reads every session's title and children before it uploads anything, so a database
+// that is gone or still locked must not take the drain — and with it every other harness's
+// pending chunks — down with it.
+function safely<T>(fallback: T, run: () => T): T {
+  try {
+    return run();
+  } catch {
+    return fallback;
   }
 }
 const str = (value: unknown): string => (typeof value === "string" ? value : "");
@@ -35,8 +46,20 @@ function sessionRow(path: string, sessionId: string): SessionRow | undefined {
   ) as SessionRow | undefined;
 }
 export function opencodeTitle(path: string, sessionId: string): string | undefined {
-  const title = sessionRow(path, sessionId)?.title;
+  const title = safely(undefined, () => sessionRow(path, sessionId))?.title;
   return title && !PLACEHOLDER.test(title) ? title : undefined;
+}
+// `session.idle` fires for subagent sessions too, so a descendant can be captured either from
+// its own idle or as a child of the root. Both paths have to name the same root and the same
+// depth, or `parent_external_id` would flip between captures.
+function root(path: string, row: SessionRow): { id: string; depth: number } | undefined {
+  let id = row.parent_id;
+  for (let depth = 1; id && depth <= 8; depth++) {
+    const parent = sessionRow(path, id);
+    if (!parent?.parent_id) return { id, depth };
+    id = parent.parent_id;
+  }
+  return undefined;
 }
 // The plugin sends `{sessionId, dbPath, cwd, source}` on `session.idle`; the session row is
 // authoritative for cwd, so a child session is captured against its own directory.
@@ -48,6 +71,7 @@ export function opencodeEvent(input: unknown): Event {
   const row = sessionRow(transcriptPath, sessionId);
   if (!row) throw new Error("No opencode session for this id");
   const title = PLACEHOLDER.test(row.title) ? "" : row.title;
+  const parent = root(transcriptPath, row);
   return {
     sessionId,
     transcriptPath,
@@ -55,39 +79,41 @@ export function opencodeEvent(input: unknown): Event {
     source: "opencode",
     ...(row.version ? { version: row.version } : {}),
     ...(title ? { title } : {}),
-    ...(row.parent_id ? { parentId: row.parent_id, spawnDepth: 1 } : {}),
+    ...(parent ? { parentId: parent.id, spawnDepth: parent.depth } : {}),
   };
 }
 // Nesting is flattened: every descendant hangs off the root session and carries its depth.
 export function opencodeChildren(event: Event): Event[] {
   const children: Event[] = [];
-  query(event.transcriptPath, (database) => {
-    const statement = database.prepare(
-      "SELECT id, directory, title, version FROM session WHERE parent_id = ?",
-    );
-    let frontier = [event.sessionId];
-    for (let depth = 1; frontier.length && depth <= 8; depth++) {
-      const next: string[] = [];
-      for (const parent of frontier)
-        for (const row of statement.all(parent) as unknown as Array<Record<string, unknown>>) {
-          const id = str(row["id"]);
-          const title = str(row["title"]);
-          next.push(id);
-          children.push({
-            sessionId: id,
-            transcriptPath: event.transcriptPath,
-            cwd: str(row["directory"]) || event.cwd,
-            source: "opencode",
-            parentId: event.sessionId,
-            spawnDepth: depth,
-            ...(str(row["version"]) ? { version: str(row["version"]) } : {}),
-            ...(title && !PLACEHOLDER.test(title) ? { title } : {}),
-            ...(event.completed ? { completed: true } : {}),
-          });
-        }
-      frontier = next;
-    }
-  });
+  safely(undefined, () =>
+    query(event.transcriptPath, (database) => {
+      const statement = database.prepare(
+        "SELECT id, directory, title, version FROM session WHERE parent_id = ?",
+      );
+      let frontier = [event.sessionId];
+      for (let depth = 1; frontier.length && depth <= 8; depth++) {
+        const next: string[] = [];
+        for (const parent of frontier)
+          for (const row of statement.all(parent) as unknown as Array<Record<string, unknown>>) {
+            const id = str(row["id"]);
+            const title = str(row["title"]);
+            next.push(id);
+            children.push({
+              sessionId: id,
+              transcriptPath: event.transcriptPath,
+              cwd: str(row["directory"]) || event.cwd,
+              source: "opencode",
+              parentId: event.sessionId,
+              spawnDepth: depth,
+              ...(str(row["version"]) ? { version: str(row["version"]) } : {}),
+              ...(title && !PLACEHOLDER.test(title) ? { title } : {}),
+              ...(event.completed ? { completed: true } : {}),
+            });
+          }
+        frontier = next;
+      }
+    }),
+  );
   return children;
 }
 // opencode upserts rows in place, so the capture cursor is a timestamp, not a byte offset: every
