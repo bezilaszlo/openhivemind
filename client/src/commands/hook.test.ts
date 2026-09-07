@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import lockfile from "proper-lockfile";
+import { DatabaseSync } from "node:sqlite";
 import { hook } from "./hook";
 import { saveConfig } from "../config";
 import { stateRoot } from "../state";
@@ -62,6 +63,40 @@ it("spools a Stop event, starts one uploader and logs without transcript text", 
   const log = await readFile(join(home, ".local/state/openhivemind/hook.log"), "utf8");
   expect(log).toContain(`session=${sessionId} status=captured`);
   expect(log).not.toContain(chunks[0].messages[0].text);
+});
+it("routes the opencode plugin's synthetic event to the SQLite adapter", async () => {
+  const database = join(home, "opencode.db");
+  const db = new DatabaseSync(database);
+  db.exec(
+    `CREATE TABLE session (id TEXT PRIMARY KEY, parent_id TEXT, directory TEXT NOT NULL,
+       title TEXT NOT NULL, version TEXT NOT NULL);
+     CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, time_created INTEGER
+       NOT NULL, time_updated INTEGER NOT NULL, data TEXT NOT NULL);
+     CREATE TABLE part (id TEXT PRIMARY KEY, message_id TEXT NOT NULL, session_id TEXT NOT NULL,
+       time_created INTEGER NOT NULL, time_updated INTEGER NOT NULL, data TEXT NOT NULL);`,
+  );
+  db.prepare("INSERT INTO session VALUES ('ses_1', NULL, ?, 'Fixture session', '1.18.29')").run(
+    repo,
+  );
+  db.prepare("INSERT INTO message VALUES ('msg_1', 'ses_1', 1788610968144, 1788610968144, ?)").run(
+    JSON.stringify({ role: "user" }),
+  );
+  db.prepare("INSERT INTO part VALUES ('prt_1', 'msg_1', 'ses_1', 1, 2, ?)").run(
+    JSON.stringify({ type: "text", text: "Fixture text" }),
+  );
+  db.close();
+  await hook({
+    input: JSON.stringify({ source: "opencode", sessionId: "ses_1", dbPath: database, cwd: repo }),
+    startUploader: () => {},
+  });
+  const chunks = (await spooled()).flatMap((batch) => batch.chunks);
+  expect(chunks[0].meta).toMatchObject({
+    source: "opencode",
+    title: "Fixture session",
+    version: "1.18.29",
+    remote: "github.com/example/hook",
+  });
+  expect(chunks[0].messages).toMatchObject([{ kind: "prompt", text: "Fixture text", rev: 1 }]);
 });
 it("captures every subagent as a child of the root session", async () => {
   await cp(

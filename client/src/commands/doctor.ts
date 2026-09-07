@@ -77,6 +77,23 @@ async function codexPluginEnabled(): Promise<boolean> {
   const section = config.split(/^\[/m).find((part) => part.startsWith('plugins."openhivemind@'));
   return Boolean(section) && !/^enabled\s*=\s*false/m.test(section!);
 }
+// opencode auto-discovers any plugin file in a config root's `plugin/` (or `plugins/`) folder and
+// also loads whatever the config's `plugin[]` array names, so either counts as installed.
+async function opencodePluginInstalled(): Promise<boolean> {
+  const home = join(process.env["XDG_CONFIG_HOME"] || join(homedir(), ".config"), "opencode");
+  for (const folder of ["plugin", "plugins"])
+    if (
+      (await readdir(join(home, folder)).catch(() => [])).some((name) =>
+        name.startsWith("openhivemind."),
+      )
+    )
+      return true;
+  for (const name of ["opencode.json", "opencode.jsonc", "config.json"]) {
+    const config = await readFile(join(home, name), "utf8").catch(() => "");
+    if (/"plugin"\s*:\s*\[[^\]]*openhivemind/.test(config)) return true;
+  }
+  return false;
+}
 // One bounded line per check; problems make the command exit non-zero.
 export async function doctor(): Promise<{ lines: string[]; ok: boolean }> {
   const lines: string[] = [];
@@ -130,6 +147,15 @@ export async function doctor(): Promise<{ lines: string[]; ok: boolean }> {
         : spool.sources.includes("codex")
           ? "installed, bundled hooks fire"
           : "installed, but no turn has been captured yet; its hooks run only once trusted from the Codex TUI"
+    }`,
+  );
+  lines.push(
+    `opencode plugin: ${
+      !(await opencodePluginInstalled())
+        ? "not installed (link client/plugins/opencode/openhivemind.js into ~/.config/opencode/plugin/)"
+        : spool.sources.includes("opencode")
+          ? "installed, session.idle fires"
+          : "installed, but no session has been captured yet"
     }`,
   );
   for (const problem of await ignoreProblems()) fail(problem);

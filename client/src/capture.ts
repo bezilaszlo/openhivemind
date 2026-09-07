@@ -16,6 +16,7 @@ import {
   type Message,
 } from "@openhivemind/shared";
 import { atomic, digest, stateRoot } from "./state";
+import { opencodeRecords } from "./harnesses/opencode";
 import type { Config } from "./config";
 const exec = promisify(execFile);
 export interface Event {
@@ -185,26 +186,6 @@ export async function capture(
       const envelope = JSON.parse(await readFile(join(folder, name), "utf8")) as Envelope;
       if (envelope.after.generation > state.generation) state = envelope.after;
     }
-    const info = await stat(event.transcriptPath);
-    const restart = info.ino !== state.inode || info.size < state.offset;
-    const offset = restart ? 0 : state.offset;
-    const file = await open(event.transcriptPath, "r");
-    let buffer: Buffer;
-    try {
-      buffer = Buffer.alloc(Math.min(info.size - offset, options.readWindow ?? 16 * 1024 * 1024));
-      const result = await file.read(buffer, 0, buffer.length, offset);
-      buffer = buffer.subarray(0, result.bytesRead);
-    } finally {
-      await file.close();
-    }
-    const end = buffer.lastIndexOf(10);
-    // No newline anywhere in a full window (as opposed to a short final read that reached the
-    // end of the file) means one line is longer than the window itself: capture cannot make any
-    // progress here, ever, and must not be mistaken for the ordinary case of a not-yet-finished
-    // trailing line. This returns before the closing check below, so a SessionEnd hook on such a
-    // transcript defers delivering its completed flag until the oversized line is resolved.
-    if (end < 0 && offset + buffer.length < info.size)
-      return { status: "line exceeds window", chunks: 0, bytes: 0 };
     // A session-end after the last turn still has to deliver the completed flag.
     const closing = Boolean(event.completed) && Boolean(state.meta) && !state.meta?.completed;
     // A harness title can arrive or improve after the transcript has reached EOF. Let that
@@ -214,14 +195,51 @@ export async function capture(
       ? deriveTitle(scrubValue(event.title, extra) as string)
       : undefined;
     const titleChanged = Boolean(state.meta && eventTitle && eventTitle !== state.meta.title);
-    if (end < 0 && !closing && !titleChanged)
-      return { status: "no complete records", chunks: 0, bytes: 0 };
-    const lines = buffer
-      .subarray(0, end + 1)
-      .toString("utf8")
-      .split("\n")
-      .filter(Boolean);
-    const records = lines.map((line) => JSON.parse(line) as unknown);
+    let records: unknown[];
+    let offset: number;
+    let inode: number;
+    let restart = false;
+    if (event.source === "opencode") {
+      // opencode upserts a SQLite database instead of appending a transcript, so the cursor is
+      // the newest row timestamp seen and re-read rows are re-emitted as revisions.
+      const read = opencodeRecords(event.transcriptPath, event.sessionId, state.offset);
+      records = read.records;
+      offset = read.cursor;
+      inode = state.inode;
+      if (!records.length && !closing && !titleChanged)
+        return { status: "no complete records", chunks: 0, bytes: 0 };
+    } else {
+      const info = await stat(event.transcriptPath);
+      restart = info.ino !== state.inode || info.size < state.offset;
+      inode = info.ino;
+      const from = restart ? 0 : state.offset;
+      const file = await open(event.transcriptPath, "r");
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.alloc(Math.min(info.size - from, options.readWindow ?? 16 * 1024 * 1024));
+        const result = await file.read(buffer, 0, buffer.length, from);
+        buffer = buffer.subarray(0, result.bytesRead);
+      } finally {
+        await file.close();
+      }
+      const end = buffer.lastIndexOf(10);
+      // No newline anywhere in a full window (as opposed to a short final read that reached the
+      // end of the file) means one line is longer than the window itself: capture cannot make any
+      // progress here, ever, and must not be mistaken for the ordinary case of a not-yet-finished
+      // trailing line. It returns even while closing, so a SessionEnd hook on such a transcript
+      // defers delivering its completed flag until the oversized line is resolved.
+      if (end < 0 && from + buffer.length < info.size)
+        return { status: "line exceeds window", chunks: 0, bytes: 0 };
+      if (end < 0 && !closing && !titleChanged)
+        return { status: "no complete records", chunks: 0, bytes: 0 };
+      offset = from + end + 1;
+      records = buffer
+        .subarray(0, end + 1)
+        .toString("utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as unknown);
+    }
     const parsed = parseRecords(event.source, records, {
       messages: restart ? [] : state.pending,
       seenUsage: restart ? [] : state.seenUsage,
@@ -303,8 +321,8 @@ export async function capture(
     }
     const after: State = {
       generation: state.generation + 1,
-      offset: offset + end + 1,
-      inode: info.ino,
+      offset,
+      inode,
       recordIndex: (restart ? 0 : state.recordIndex) + records.length,
       nextSeq,
       entries,

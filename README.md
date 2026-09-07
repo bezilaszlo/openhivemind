@@ -10,10 +10,11 @@ Shared, searchable history of coding-agent sessions for a team. Self-hosted.
 
 **Status: MVP implementation in progress.** The workspace, shared contracts,
 privacy/search/parser tests, authenticated data routes, local/OIDC integration
-and the interactive viewer are runnable. Claude Code and Codex CLI capture run
-end to end through their native plugins, the spool and the uploader, and the
-`search`, `sessions` and `show` read commands work from the CLI; opencode
-capture and browser login are not implemented yet. Full release acceptance
+and the interactive viewer are runnable. Claude Code, Codex CLI and opencode
+capture run end to end through their native plugins, the spool and the
+uploader, and the `search`, `sessions` and `show` read commands work from the
+CLI; browser login and installing the opencode plugin from `setup` are not
+implemented yet. Full release acceptance
 remains unfinished; this is not v1.
 
 ## Install and configure the CLI
@@ -49,6 +50,30 @@ clone for development. Codex runs the plugin's bundled hooks only after they
 are trusted, which is granted from the Codex TUI; until then it skips them
 without a word, so run `openhivemind doctor` — it reports whether the plugin is
 installed and whether its hooks have ever fired.
+
+## Capture an opencode session
+
+opencode has no marketplace and no hooks, so capture is one auto-discovered
+plugin file. After installing and configuring the CLI, link it and the skills
+into your opencode config directory:
+
+```
+ohm=$(npm root -g)/openhivemind
+mkdir -p ~/.config/opencode/plugin ~/.config/opencode/skill
+ln -sf "$ohm/plugins/opencode/openhivemind.js" ~/.config/opencode/plugin/
+for skill in gist search setup share; do
+  mkdir -p ~/.config/opencode/skill/openhivemind-$skill
+  cp "$ohm/skills/$skill/SKILL.md" ~/.config/opencode/skill/openhivemind-$skill/
+done
+```
+
+The plugin ships its own copy of the CLI bundle, so it works from a clone too:
+link `client/plugins/opencode/openhivemind.js` after `pnpm build:cli`. It sends
+one capture on every `session.idle`, reading the session's rows straight out of
+`~/.local/share/opencode/opencode.db`; opencode rewrites rows in place, so an
+edited message is re-sent as a new revision of the same message rather than a
+duplicate. `openhivemind doctor` reports whether the plugin is installed and
+whether it has captured anything.
 
 Each finished turn spools locally and a detached `openhivemind sync` uploads it;
 `doctor` reports anything still pending.

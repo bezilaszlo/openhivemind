@@ -183,10 +183,15 @@ export async function drain(
     const event = await refreshEvent(state.event);
     // The last turn of a session is written after its own hook read the transcript, so the
     // drain path is what closes the tail; paused sessions resume here once the cap is freed.
-    const behind = await stat(event.transcriptPath).then(
-      (info) => info.size > state.offset || info.ino !== state.inode,
-      () => false,
-    );
+    // opencode's cursor is a row timestamp in a database shared by every session, so file size
+    // and inode say nothing about it: ask capture() instead, which reads the cursor and returns
+    // "no complete records" when nothing moved.
+    const behind =
+      event.source === "opencode" ||
+      (await stat(event.transcriptPath).then(
+        (info) => info.size > state.offset || info.ino !== state.inode,
+        () => false,
+      ));
     // capture() is a no-op at EOF unless the refreshed title differs, so this also repairs
     // already-spooled sessions without creating noise for unchanged ones.
     if (state.paused || behind || event.title !== state.event.title) {

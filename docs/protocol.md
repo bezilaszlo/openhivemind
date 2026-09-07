@@ -196,31 +196,40 @@ what captures the thread, and the drain path closes anything it missed.
 
 Verified 2026-09-05 on opencode 1.18.29 (repo source at `anomalyco/opencode`,
 live schema of the local SQLite DB, two free-model `opencode run` turns with a
-probe plugin in an isolated XDG dir).
+probe plugin in an isolated XDG dir), and re-verified 2026-09-07 on the same
+version while building the adapter (live schema of a scratch `XDG_DATA_HOME`
+database and two live `opencode run` turns through the shipped plugin).
 
 | Topic | Finding |
 | --- | --- |
-| Storage | SQLite `~/.local/share/opencode/opencode.db` (WAL), Drizzle. Tables `project`, `session` (`parent_id`, `title`, `directory`, `time_*`), `message` (`role`, `model`, `cost`, `tokens{input,output,reasoning,cache{read,write}}`, `time`), `part` (`text`, `reasoning`, `tool` with `state{input,output,status}`, `step-start`, `step-finish`, `compaction`, `subtask`), `event` |
-| Write model | **Upsert**, not append. Rows change in place while streaming; ids are stable; `time.updated` on session and message |
-| Compaction | `message` of type `compaction` with `summary`; `CompactionPart.tail_start_id`; old rows kept |
+| Storage | SQLite `~/.local/share/opencode/opencode.db` (WAL), Drizzle. `session(id, parent_id, directory, title, version, time_created, time_updated, …)`; `message(id, session_id, time_created, time_updated, data)` and `part(id, message_id, session_id, time_created, time_updated, data)` keep the payload as a JSON `data` blob — `role`, `model`, `tokens{input,output,reasoning,cache{read,write}}` are inside `message.data`, and `text`, `reasoning`, `tool` (`state{input,output,status}`), `step-start`, `step-finish`, `compaction`, `subtask` inside `part.data`. Parts of a message are ordered by their monotonic `id` |
+| Write model | **Upsert**, not append. Rows change in place while streaming; ids are stable. `time_updated` is a column on the row, and a part is written **after** its message row, so a message's own `time_updated` does not cover its parts |
+| Compaction | A `compaction` **part** on a user message, and the summary it produces is an assistant message whose `data.summary` is `true`; old rows are kept |
 | Subagents | Child `session` rows with `parent_id`; parent carries a `subtask` part |
-| Title | `session.title`, defaulted, updated later by the model |
+| Title | `session.title`, defaulted to `New session - <ISO>` until the title agent renames it |
 | Hooks | None. No JSON hooks config exists |
-| Plugin | In-process, `.opencode/plugins/*.{js,ts}` or an npm name in `opencode.json` `plugin[]`. Events: `session.idle`, `session.updated`, `message.updated`, `message.part.updated`, `tool.execute.before/after`, `chat.message`, `experimental.text.complete`, plus raw `message.part.delta` streams. Fire-and-forget; can spawn subprocesses |
+| Plugin | In-process. Auto-discovered from any config root's `plugin/` or `plugins/` folder (`~/.config/opencode/plugin/*.{js,ts}`, `.opencode/plugin/…`), or named in `opencode.json` `plugin[]` as an npm spec, path or file URL. A module exports a function `(input) => hooks`. Events: `session.idle` (`properties.sessionID`), `session.updated`, `message.updated`, `message.part.updated`, `tool.execute.before/after`, `chat.message`, `experimental.text.complete`, plus raw `message.part.delta` streams. Fire-and-forget; can spawn subprocesses |
+| Skills | Native `skill/<name>/SKILL.md` under a config root, so our canonical skills install unchanged |
 | Server/SDK | `opencode serve` with OpenAPI; `GET /event` SSE; `GET /session/:id/message`, `/children`; `@opencode-ai/sdk` |
 | Isolation for tests | Honours `XDG_DATA_HOME` etc.; free models via `opencode/*-free` |
 
-Adapter: a minimal plugin (`openhivemind-opencode`) that on `session.idle`
-spawns `openhivemind hook` with a synthetic `turn` event `{sessionId, dbPath,
-cwd: session.directory, source: "opencode"}`. The parser reads the session's
-`message` and `part` rows (`node:sqlite`, read-only, WAL) and emits messages
-whose capture cursor is the max `message.time.updated` seen, re-emitting rows
-updated since. Upserts mean a message can change after first capture: the
-client keeps a content hash per emitted seq and, when it changes, re-sends the
-message with `rev + 1`; the server replaces the row (revision contract in
-§ Ingest API below). Same seq and rev with a different hash remains a
-409. No `session-end` event; the drain runs on the
-next idle of any session, `sync`, or `doctor`.
+Adapter: a minimal plugin that on `session.idle` spawns `openhivemind hook`
+with a synthetic `turn` event `{source: "opencode", sessionId, dbPath, cwd}`.
+The `source` field is what routes it, because opencode has no hook contract
+whose fields could identify it. The adapter reads the session's `message` and
+`part` rows (`node:sqlite`, read-only, WAL) and rebuilds the record shape the
+shared parser normalises; `session.directory` is authoritative for cwd,
+`session.version` is the harness version, and a still-default title is treated
+as a placeholder so the first prompt wins. The capture cursor is the newest
+`max(message.time_updated, max(part.time_updated))` seen, and every message at
+or past it is re-read: the message row alone would strand the final text of
+each turn, which is written to a part after the message row settles. Upserts
+mean a message can change after first capture: the client keeps a content hash
+per emitted seq and, when it changes, re-sends the message with `rev + 1`; the
+server replaces the row (revision contract in § Ingest API below). Same seq and
+rev with a different hash remains a 409. Child sessions are found by
+`parent_id` and flattened onto the root with their depth. No `session-end`
+event; the drain runs on the next idle of any session, `sync`, or `doctor`.
 
 Delivered relative to Claude Code: per-idle rather than per-turn capture,
 usage per message, subagents, compaction, title. Not delivered: nothing in the
@@ -237,7 +246,7 @@ system owns install, update, disable and uninstall.
 | --- | --- |
 | Claude Code | Native plugin only: `/plugin marketplace add openhivemind/openhivemind` + `/plugin install openhivemind`. The marketplace manifest is `.claude-plugin/marketplace.json` at the repository root and points at `client/plugins/claude-code`, whose `dist/` and `skills/` the client build assembles. Ships hooks and the four skills under the `openhivemind:` namespace. The `setup` skill runs `openhivemind setup <url>` |
 | Codex CLI | Native plugin only: `codex plugin marketplace add openhivemind/openhivemind` + `codex plugin add openhivemind@openhivemind`. The manifest is `.agents/plugins/marketplace.json` at the repository root and points at `client/plugins/codex`, whose `dist/` and `skills/` the client build assembles. Codex runs the bundled hooks only once they are trusted, which is granted in the TUI; until then they are skipped silently. `doctor` reports whether the plugin is installed and whether its hooks have ever fired (issues #16430 / #17532). No config patching by us |
-| opencode | No marketplace. `openhivemind setup` appends the `openhivemind-opencode` npm name to `opencode.json` `plugin[]`, the documented install path; skills are installed as opencode command files by the same step |
+| opencode | No marketplace. The plugin is a single auto-discovered file: link `plugins/opencode/openhivemind.js` from the installed CLI into `~/.config/opencode/plugin/`, and copy the skills into `~/.config/opencode/skill/openhivemind-<name>/SKILL.md`, their native layout. `openhivemind setup` will do both; today it is a documented manual step. `doctor` reports whether the plugin is installed and whether a session has been captured through it |
 
 `openhivemind setup <url>`: browser login, PAT stored, `doctor`, and the
 opencode entry above. Nothing else. Flags: `--read-only` (no capture),
@@ -248,10 +257,12 @@ piped on stdin (`--token <pat>` or `-` also accepted; an interactive terminal
 with nothing piped is an error, never a silent wait),
 both taking repeatable `--root` / `--exclude` and `--read-only`, and storing
 the resolved real paths in a mode-600 config. Browser login and the opencode
-entry are not implemented yet. `doctor` reports the config file and its mode,
+plugin and skill install are not implemented yet. `doctor` reports the config
+file and its mode,
 server reachability and the accepted protocol range, token validity, the
-effective roots and exclude lists, whether the Claude Code and Codex
-plugins are installed and whether the Codex hooks have fired, invalid ignore
+effective roots and exclude lists, whether the Claude Code, Codex and opencode
+plugins are installed, whether the Codex hooks have fired and whether an
+opencode session has been captured, invalid ignore
 lines, spool size, pending and permanently rejected
 chunks, paused and gap sessions, and a recorded "upgrade client" stop. It
 exits 2 when a check fails.

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+opencode sessions are captured. A small auto-discovered opencode plugin runs
+`openhivemind hook` on every `session.idle`, and the client reads that
+session's messages straight out of opencode's SQLite database. Because opencode
+rewrites rows in place rather than appending, the capture cursor is a row
+timestamp and an edited message is re-sent as a new revision of the same
+message instead of a duplicate; subagent sessions are captured as children of
+the root. `doctor` now reports whether the opencode plugin is installed and
+whether it has captured a session, and the README explains how to link the
+plugin and skills into `~/.config/opencode`.
+
 Session capture now waits for meaningful content instead of publishing empty
 threads, and the viewer omits legacy empty sessions unless they parent a
 captured conversation. Claude Code's `ai-title` and Codex's native thread name
