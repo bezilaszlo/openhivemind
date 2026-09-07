@@ -87,8 +87,9 @@ Rules:
   A small rollback helper covers transaction-sharing tests. Use the already
   running compose Postgres, not testcontainers.
 - Plugin directories are packaging sources; assembly copies the built client
-  and the canonical skills into each harness's native layout (opencode command
-  files derived from the same skills). Runtime state never lives in the repo.
+  and the canonical skills into each harness's native layout (opencode reads
+  the same `<name>/SKILL.md` shape, so they are copied unchanged). Runtime
+  state never lives in the repo.
 
 ## Gate 1 — foundation and discovery
 
