@@ -33,7 +33,16 @@ in the viewer and via search within one turn of the hook firing.
 
 - Bulk historic load: discover and beam every prior session on a machine, not just
   one at a time (`beam` today takes a single transcript or session id).
-
+- Multi-hive routing: several named hives in one client config, each with its
+  own server, token and roots. Roots route: the hook and the read commands pick
+  the hive whose root contains the session's or shell's cwd, `--hive <name>`
+  overrides, a cwd under no root is an error that names the hives, never a
+  guess. Roots of different hives may not overlap, and a rootless hive is
+  allowed only when it is the sole one, so a transcript can never reach the
+  wrong server. Read output names the hive it answered from; `doctor` checks
+  each. Also the supported answer for a single developer who wants
+  multi-harness search without a shared server: a personal hive on localhost
+  next to the team's.
 - Additional harness parsers (Gemini CLI, Cursor, others by demand).
 - Windows support for the client.
 - Project-level visibility controls if teams ask for them.
